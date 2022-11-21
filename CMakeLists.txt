@@ -95,6 +95,7 @@ include(${PROJECT_SOURCE_DIR}/orb_slam3/Thirdparty/g2o/CMakeLists.txt)
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${PROJECT_SOURCE_DIR}/orb_slam3/lib)
 
 add_library(${PROJECT_NAME} SHARED
+  # src files
   orb_slam3/src/System.cc
   orb_slam3/src/Tracking.cc
   orb_slam3/src/LocalMapping.cc
@@ -123,6 +124,8 @@ add_library(${PROJECT_NAME} SHARED
   orb_slam3/src/TwoViewReconstruction.cc
   orb_slam3/src/Config.cc
   orb_slam3/src/Settings.cc
+  orb_slam3/src/PressureTypes.cc
+  # header files
   orb_slam3/include/System.h
   orb_slam3/include/Tracking.h
   orb_slam3/include/LocalMapping.h
@@ -153,6 +156,7 @@ add_library(${PROJECT_NAME} SHARED
   orb_slam3/include/SerializationUtils.h
   orb_slam3/include/Config.h
   orb_slam3/include/Settings.h
+  orb_slam3/include/PressureTypes.h
 )
 
 target_link_libraries(${PROJECT_NAME}
@@ -222,6 +226,16 @@ add_executable(ros_rgbd_inertial
   src/common.cc
 )
 target_link_libraries(ros_rgbd_inertial
+  ${PROJECT_NAME}
+  ${catkin_LIBRARIES}
+)
+
+## ROS node
+add_executable(ros_mono_uw
+  src/ros_mono_uw.cc
+  src/common.cc
+)
+target_link_libraries(ros_mono_uw
   ${PROJECT_NAME}
   ${catkin_LIBRARIES}
 )

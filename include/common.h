@@ -33,6 +33,16 @@
 #include "System.h"
 #include "ImuTypes.h"
 
+// ---------------------------------------
+// UW
+// ---------------------------------------
+#include <sensor_msgs/FluidPressure.h>
+#include "PressureTypes.h"
+// ---------------------------------------
+// UW END
+// ---------------------------------------
+
+
 extern ORB_SLAM3::System* pSLAM;
 extern ORB_SLAM3::System::eSensor sensor_type;
 
