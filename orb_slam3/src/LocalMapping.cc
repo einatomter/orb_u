@@ -30,6 +30,122 @@
 namespace ORB_SLAM3
 {
 
+// -------------------------------------------------------------------------------------------
+// UW
+// -------------------------------------------------------------------------------------------
+
+void LocalMapping::InitializeScaleUW()
+{
+    if (mbResetRequested)
+        return;
+
+    float minTime = 2.0;
+    int nMinKF = 5;
+
+    if(mpAtlas->KeyFramesInMap()<nMinKF)
+        return;
+
+    // Retrieve all keyframe in temporal order
+    list<KeyFrame*> lpKF;
+    KeyFrame* pKF = mpCurrentKeyFrame;
+    while(pKF->mPrevKF)
+    {
+        lpKF.push_front(pKF);
+        pKF = pKF->mPrevKF;
+    }
+    lpKF.push_front(pKF);
+    vector<KeyFrame*> vpKF(lpKF.begin(),lpKF.end());
+
+    if(vpKF.size()<nMinKF)
+        return;
+
+    mFirstTs=vpKF.front()->mTimeStamp;
+    if(mpCurrentKeyFrame->mTimeStamp-mFirstTs<minTime)
+        return;
+
+    bInitializing = true;
+
+    while(CheckNewKeyFrames())
+    {
+        ProcessNewKeyFrame();
+        vpKF.push_back(mpCurrentKeyFrame);
+        lpKF.push_back(mpCurrentKeyFrame);
+    }
+
+    mScale=1.0;
+
+
+    // Optimizer::ScaleOptimizationP(mpAtlas->GetCurrentMap(), mScale);
+
+    Map *pMap = mpAtlas->GetCurrentMap();
+    long unsigned int maxKFid = pMap->GetMaxKFid();
+    const vector<KeyFrame*> vpKFs = pMap->GetAllKeyFrames();
+
+    double sumScale = 0;
+    int count = 0;
+    for(size_t i=0;i<vpKFs.size();i++)
+    {
+        KeyFrame* pKFi = vpKFs[i];
+
+        if(pKFi->mPrevKF && pKFi->mnId<=maxKFid)
+        {
+            if(pKFi->isBad() || pKFi->mPrevKF->mnId>maxKFid)
+                continue;
+            
+            double scale = pKFi->mPressureMeas.relativeDepthHeight()/pKFi->GetPose().translation()(1);
+            // std::cout << "depth over pose: " << scale << std::endl;
+
+            // negative values are often an issue of bias instead of inverted scale
+            // and is therefore not included in calculations
+            if(scale <= 0)
+                continue;
+            sumScale += scale;
+            count++;
+        }
+    }
+
+    // TODO: check standard deviation for spurious values
+
+    // if too few valid scale measurements
+    if(count < 5)
+    {
+        cout << "too few scale measurements" << endl;
+        bInitializing=false;
+        return;
+    }
+
+    mScale = sumScale/count;
+    std::cout << "calculated scale:\t" << mScale << std::endl;
+    if(mScale >= 2) // 1e-1
+    {
+        // cout << "scale too large, clamping" << endl;
+        mScale = 2;
+    }
+
+    if(mScale < 1e-1) // 1e-1
+    {
+        cout << "scale too small" << endl;
+        bInitializing=false;
+        return;
+    }
+
+    
+    // Before this line we are not changing the map
+    unique_lock<mutex> lock(mpAtlas->GetCurrentMap()->mMutexMapUpdate);
+    if ((fabs(mScale-1.f)>0.002))
+    {
+        Sophus::SE3f Tgw(Eigen::Matrix3d::Identity().cast<float>(),Eigen::Vector3f::Zero());
+        mpAtlas->GetCurrentMap()->ApplyScaledRotation(Tgw,mScale,true);
+    }
+
+    bInitializing = false;
+    return;
+}
+
+// -------------------------------------------------------------------------------------------
+// UW END
+// -------------------------------------------------------------------------------------------
+
 // LocalMapping::LocalMapping(System* pSys, Atlas *pAtlas, const float bMonocular, bool bInertial, const string &_strSeqName), const bool bIsUW:
 //     mpSystem(pSys), mbMonocular(bMonocular), mbInertial(bInertial), mbResetRequested(false), mbResetRequestedActiveMap(false), mbFinishRequested(false), mbFinished(true), mpAtlas(pAtlas), bInitializing(false),
 //     mbAbortBA(false), mbStopped(false), mbStopRequested(false), mbNotStop(false), mbAcceptKeyFrames(true),
@@ -192,6 +308,11 @@ void LocalMapping::Run()
                         InitializeIMU(1e2, 1e5, true);
                 }
 
+                // Initialize pressure
+                if(!mpCurrentKeyFrame->GetMap()->isScaleUWInitialized() && mbIsUW)
+                {
+                    InitializeScaleUW();
+                }
 
                 // Check redundant local Keyframes
                 KeyFrameCulling();

@@ -42,6 +42,7 @@ class LocalMapping
 {
 // UW
 public:
+    void InitializeScaleUW();
     bool mbIsUW;
 // UW end
 public:

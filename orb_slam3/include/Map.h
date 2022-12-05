@@ -66,7 +66,13 @@ class Map
         ar & mbIMU_BA1;
         ar & mbIMU_BA2;
     }
-
+// UW
+public:
+    void setScaleUWInitialized();
+    bool isScaleUWInitialized();
+protected:
+    bool mbScaleUWInitialized;
+// UW END
 public:
     EIGEN_MAKE_ALIGNED_OPERATOR_NEW
     Map();
