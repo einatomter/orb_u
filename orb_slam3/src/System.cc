@@ -112,14 +112,14 @@ Sophus::SE3f System::TrackMonoUW(const cv::Mat &im, const double &timestamp, flo
     // create pressure object
     UW::Point pressureMeas(pressure);
 
-    // Sophus::SE3f Tcw = mpTracker->GrabImageMonoVP(imToFeed, pressureMeas, timestamp, filename);
+    Sophus::SE3f Tcw = mpTracker->GrabImageMonoUW(imToFeed, pressureMeas, timestamp, filename);
 
     unique_lock<mutex> lock2(mMutexState);
     mTrackingState = mpTracker->mState;
     mTrackedMapPoints = mpTracker->mCurrentFrame.mvpMapPoints;
     mTrackedKeyPointsUn = mpTracker->mCurrentFrame.mvKeysUn;
 
-    // return Tcw;
+    return Tcw;
 }
 
 
