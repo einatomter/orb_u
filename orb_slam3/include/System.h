@@ -40,6 +40,8 @@
 #include "ImuTypes.h"
 #include "Settings.h"
 
+// UW
+#include "PressureTypes.h"
 
 namespace ORB_SLAM3
 {
@@ -82,6 +84,16 @@ class Settings;
 
 class System
 {
+// UW
+public:
+    // Process the given monocular frame, pressure and optionally imu data
+    // Input images: RGB (CV_8UC3) or grayscale (CV_8U). RGB is converted to grayscale.
+    // Input pressure: Float value of pressure reading.
+    // Returns the camera pose (empty if tracking fails).
+    Sophus::SE3f TrackMonoUW(const cv::Mat &im, const double &timestamp, float pressure = 0, const vector<IMU::Point>& vImuMeas = vector<IMU::Point>(), string filename="");
+    bool mbIsUW;
+
+// UW END
 public:
     // Input sensor
     enum eSensor{
@@ -103,7 +115,8 @@ public:
 public:
     EIGEN_MAKE_ALIGNED_OPERATOR_NEW
     // Initialize the SLAM system. It launches the Local Mapping, Loop Closing and Viewer threads.
-    System(const string &strVocFile, const string &strSettingsFile, const eSensor sensor, const bool bUseViewer = true, const int initFr = 0, const string &strSequence = std::string());
+    // System(const string &strVocFile, const string &strSettingsFile, const eSensor sensor, const bool bUseViewer = true, const int initFr = 0, const string &strSequence = std::string());
+    System(const string &strVocFile, const string &strSettingsFile, const eSensor sensor, const bool bUseViewer = true, const bool bIsUW = false, const int initFr = 0, const string &strSequence = std::string());
 
     // Proccess the given stereo frame. Images must be synchronized and rectified.
     // Input images: RGB (CV_8UC3) or grayscale (CV_8U). RGB is converted to grayscale.

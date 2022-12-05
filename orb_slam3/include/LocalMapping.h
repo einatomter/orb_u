@@ -40,9 +40,14 @@ class Atlas;
 
 class LocalMapping
 {
+// UW
+public:
+    bool mbIsUW;
+// UW end
 public:
     EIGEN_MAKE_ALIGNED_OPERATOR_NEW
-    LocalMapping(System* pSys, Atlas* pAtlas, const float bMonocular, bool bInertial, const string &_strSeqName=std::string());
+    // LocalMapping(System* pSys, Atlas* pAtlas, const float bMonocular, bool bInertial, const string &_strSeqName=std::string());
+    LocalMapping(System* pSys, Atlas* pAtlas, const float bMonocular, bool bInertial, const string &_strSeqName=std::string(), const bool bIsUW = false);
 
     void SetLoopCloser(LoopClosing* pLoopCloser);
 

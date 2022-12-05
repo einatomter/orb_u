@@ -55,11 +55,19 @@ class Settings;
 
 class Tracking
 {  
+// UW
+public:
+    Sophus::SE3f GrabImageMonoUW(const cv::Mat &im, const UW::Point &pressureMeas, const double &timestamp, string filename);
+    bool mbIsUW;
+    float mInitDepth;
 
+// UW END
 public:
     EIGEN_MAKE_ALIGNED_OPERATOR_NEW
+    // Tracking(System* pSys, ORBVocabulary* pVoc, FrameDrawer* pFrameDrawer, MapDrawer* pMapDrawer, Atlas* pAtlas,
+    //          KeyFrameDatabase* pKFDB, const string &strSettingPath, const int sensor, Settings* settings, const string &_nameSeq=std::string());
     Tracking(System* pSys, ORBVocabulary* pVoc, FrameDrawer* pFrameDrawer, MapDrawer* pMapDrawer, Atlas* pAtlas,
-             KeyFrameDatabase* pKFDB, const string &strSettingPath, const int sensor, Settings* settings, const string &_nameSeq=std::string());
+             KeyFrameDatabase* pKFDB, const string &strSettingPath, const int sensor, Settings* settings, const string &_nameSeq=std::string(), const bool bIsUW = false);
 
     ~Tracking();
 

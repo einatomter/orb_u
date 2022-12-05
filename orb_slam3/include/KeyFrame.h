@@ -191,7 +191,12 @@ class KeyFrame
         ar & boost::serialization::make_array(mOwb.data(), mOwb.size());
         ar & mbHasVelocity;
     }
-
+// UW
+public:
+    // Object containing pressure readings and info
+    UW::Point mPressureMeas;
+    
+// UW END
 public:
     EIGEN_MAKE_ALIGNED_OPERATOR_NEW
     KeyFrame();

@@ -39,6 +39,9 @@
 #include "Eigen/Core"
 #include "sophus/se3.hpp"
 
+#include "PressureTypes.h"
+
+
 namespace ORB_SLAM3
 {
 #define FRAME_GRID_ROWS 48
@@ -52,6 +55,16 @@ class ORBextractor;
 
 class Frame
 {
+
+// UW
+public:
+    // Constructor MonoVP
+    Frame(const cv::Mat &imGray, const double &timeStamp, const UW::Point &pressureMeas, ORBextractor* extractor,ORBVocabulary* voc, GeometricCamera* pCamera, cv::Mat &distCoef, const float &bf, const float &thDepth, const float &initDepth = 0, Frame* pPrevF = static_cast<Frame*>(NULL), const IMU::Calib &ImuCalib = IMU::Calib());
+
+    // Object containing pressure readings and info
+    UW::Point mPressureMeas;
+    
+// UW END
 public:
     Frame();
 

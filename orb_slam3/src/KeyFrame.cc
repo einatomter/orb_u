@@ -77,7 +77,7 @@ KeyFrame::KeyFrame(Frame &F, Map *pMap, KeyFrameDatabase *pKFDB):
         }
     }
 
-
+    mPressureMeas = F.mPressureMeas;    // UW
 
     if(!F.HasVelocity()) {
         mVw.setZero();
