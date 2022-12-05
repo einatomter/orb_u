@@ -148,6 +148,8 @@ void ImageGrabber::SyncWithPressure()
             cv::Mat im;
             double tIm = 0;
             
+            tIm = img0Buf.front()->header.stamp.toSec();
+
             this->mBufMutex.lock();
             im = GetImage(img0Buf.front());
             ros::Time msg_time = img0Buf.front()->header.stamp;
@@ -174,7 +176,8 @@ void ImageGrabber::SyncWithPressure()
             mpPGb->mBufMutex.unlock();
 
             // ORB-SLAM3 runs in TrackMonocular()
-            Sophus::SE3f Tcw = pSLAM->TrackMonocular(im, tIm);
+            // Sophus::SE3f Tcw = pSLAM->TrackMonocular(im, tIm);
+            Sophus::SE3f Tcw = pSLAM->TrackMonoUW(im, tIm, mpPGb->pressure);
 
             publish_topics(msg_time);
         }
