@@ -45,6 +45,11 @@ class LoopClosing;
 
 class Optimizer
 {
+// UW
+public:
+    int static PoseOptimizationUW(Frame *pFrame);
+
+// UW END
 public:
 
     void static BundleAdjustment(const std::vector<KeyFrame*> &vpKF, const std::vector<MapPoint*> &vpMP,
