@@ -42,7 +42,7 @@ Verbose::eLevel Verbose::th = Verbose::VERBOSITY_NORMAL;
 // UW
 // -------------------------------------------------------------------------------------------
 
-Sophus::SE3f System::TrackMonoUW(const cv::Mat &im, const double &timestamp, float pressure, const vector<IMU::Point>& vImuMeas, string filename)
+Sophus::SE3f System::TrackMonoUW(const cv::Mat &im, const double &timestamp, const float &pressure, const vector<IMU::Point>& vImuMeas, string filename)
 {
 
     {

@@ -135,6 +135,8 @@ void Tracking::MonocularInitializationUW()
             // Set initial depth value
             mInitDepth = mCurrentFrame.mPressureMeas.depth;
             mInitialFrame.mPressureMeas.setInitDepth(mInitDepth);
+            // std::cout << "Mono init UW: current frame pressure: " << mCurrentFrame.mPressureMeas.pressure << std::endl;
+            // std::cout << "Mono init UW: Setting initial depth value: " << mInitDepth << std::endl;
             
             mbReadyToInitializate = true;
 
@@ -162,7 +164,8 @@ void Tracking::MonocularInitializationUW()
         }
 
         // Check if initial pressure object has valid values
-        if (isnan(mInitDepth) || mInitialFrame.mPressureMeas.pressure > 1e-1)
+        // if (isnan(mInitDepth) || mInitialFrame.mPressureMeas.pressure > 1e-1)
+        if (isnan(mInitDepth)|| mInitialFrame.mPressureMeas.pressure < 1e-1)
         {
             // if(isnan(mInitDepth)){
             //     std::cout << "error: init depth is NaN" << std::endl;
@@ -172,15 +175,15 @@ void Tracking::MonocularInitializationUW()
             // }
             // else
             // {
-            //     std::cout << "unexpected error: initial pressure values" << std::endl;
+            std::cout << "unexpected error: initial pressure values: " << mInitialFrame.mPressureMeas.pressure << std::endl;
             // }
 
             mbReadyToInitializate = false;
             return;
         }
 
-        std::cout << "initial depth: " << mInitialFrame.mPressureMeas.initDepth << std::endl;
-        std::cout << "relative depth: " << mInitialFrame.mPressureMeas.relativeDepthHeight() << std::endl;
+        // std::cout << "initial depth: " << mInitialFrame.mPressureMeas.initDepth << std::endl;
+        // std::cout << "relative depth: " << mInitialFrame.mPressureMeas.relativeDepthHeight() << std::endl;
 
         Sophus::SE3f Tcw;
         vector<bool> vbTriangulated; // Triangulated Correspondences (mvIniMatches)
