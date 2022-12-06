@@ -81,6 +81,9 @@ void LocalMapping::InitializeScaleUW()
     long unsigned int maxKFid = pMap->GetMaxKFid();
     const vector<KeyFrame*> vpKFs = pMap->GetAllKeyFrames();
 
+    double sumEstimate = 0;
+    double sumMeasured = 0;
+
     double sumScale = 0;
     int count = 0;
     for(size_t i=0;i<vpKFs.size();i++)
@@ -89,15 +92,23 @@ void LocalMapping::InitializeScaleUW()
 
         if(pKFi->mPrevKF && pKFi->mnId<=maxKFid)
         {
+            // do not include bad keyframes
             if(pKFi->isBad() || pKFi->mPrevKF->mnId>maxKFid)
                 continue;
             
+            // do not include keyframe if estimate is too low (too sensitive to noise)
+            if(fabs(pKFi->GetPose().translation()(1)) < 1e-1)
+                continue;
+
+            sumMeasured += fabs(pKFi->mPressureMeas.relativeDepthHeight());
+            sumEstimate += fabs(pKFi->GetPose().translation()(1));
+
             double scale = pKFi->mPressureMeas.relativeDepthHeight()/pKFi->GetPose().translation()(1);
             // std::cout << "depth over pose: " << scale << std::endl;
 
             // negative values are often an issue of bias instead of inverted scale
             // and is therefore not included in calculations
-            if(scale <= 0 || scale >= 10)
+            if(scale <= 0)
                 continue;
             sumScale += scale;
             count++;
@@ -115,7 +126,9 @@ void LocalMapping::InitializeScaleUW()
     }
 
     mScale = sumScale/count;
+    double mScaleAlt = sumMeasured/sumEstimate;
     std::cout << "calculated scale:\t" << mScale << std::endl;
+    std::cout << "calculated alt:\t" << mScaleAlt << std::endl;
     if(mScale >= 2) // 1e-1
     {
         // cout << "scale too large, clamping" << endl;
@@ -131,12 +144,12 @@ void LocalMapping::InitializeScaleUW()
 
     
     // Before this line we are not changing the map
-    unique_lock<mutex> lock(mpAtlas->GetCurrentMap()->mMutexMapUpdate);
-    if ((fabs(mScale-1.f)>0.002))
-    {
-        Sophus::SE3f Tgw(Eigen::Matrix3d::Identity().cast<float>(),Eigen::Vector3f::Zero());
-        mpAtlas->GetCurrentMap()->ApplyScaledRotation(Tgw,mScale,true);
-    }
+    // unique_lock<mutex> lock(mpAtlas->GetCurrentMap()->mMutexMapUpdate);
+    // if ((fabs(mScale-1.f)>0.002))
+    // {
+    //     Sophus::SE3f Tgw(Eigen::Matrix3d::Identity().cast<float>(),Eigen::Vector3f::Zero());
+    //     mpAtlas->GetCurrentMap()->ApplyScaledRotation(Tgw,mScale,true);
+    // }
 
     bInitializing = false;
     return;

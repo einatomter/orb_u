@@ -177,6 +177,7 @@ void ImageGrabber::SyncWithPressure()
 
             // ORB-SLAM3 runs in TrackMonocular()
             // Sophus::SE3f Tcw = pSLAM->TrackMonocular(im, tIm);
+            std::cout << "pressure value ros node: " << mpPGb->pressure << std::endl;
             Sophus::SE3f Tcw = pSLAM->TrackMonoUW(im, tIm, mpPGb->pressure);
 
             publish_topics(msg_time);
