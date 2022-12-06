@@ -21,7 +21,7 @@ public:
     queue<sensor_msgs::FluidPressureConstPtr> pBuf;
     // TODO: move lastVal functionality to pressure code when ready
     sensor_msgs::FluidPressure bufLastVal;
-    float pressure;
+    float pressure = 0;
     std::mutex mBufMutex;
 };
 
@@ -156,6 +156,7 @@ void ImageGrabber::SyncWithPressure()
             img0Buf.pop();
             this->mBufMutex.unlock();
 
+
             mpPGb->mBufMutex.lock();
             // if sensor data available, synchronize readings to image
             if (!mpPGb->pBuf.empty())
@@ -169,15 +170,16 @@ void ImageGrabber::SyncWithPressure()
                     // TODO: move to within orb_slam
                     mpPGb->pressure = mpPGb->bufLastVal.fluid_pressure;
                     // std::cout << mpPGb->bufLastVal.fluid_pressure << std::endl;
-                    // std::cout << mpPGb->pressure << " +- " << ORB_SLAM3::UW::DEPTH_NOISE << std::endl;
                     mpPGb->pBuf.pop();
                 }
             }
             mpPGb->mBufMutex.unlock();
 
-            // ORB-SLAM3 runs in TrackMonocular()
-            // Sophus::SE3f Tcw = pSLAM->TrackMonocular(im, tIm);
-            std::cout << "pressure value ros node: " << mpPGb->pressure << std::endl;
+            // do not feed to SLAM system until we get first pressure reading
+            if(mpPGb->pressure < 1e-1)
+                continue;
+
+            // ORB-SLAM3 runs in TrackMonoUW()
             Sophus::SE3f Tcw = pSLAM->TrackMonoUW(im, tIm, mpPGb->pressure);
 
             publish_topics(msg_time);
