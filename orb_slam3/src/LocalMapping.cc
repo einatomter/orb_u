@@ -120,7 +120,7 @@ void LocalMapping::InitializeScaleUW()
     // if too few valid scale measurements
     if(count < 5)
     {
-        cout << "too few scale measurements" << endl;
+        // cout << "too few scale measurements" << endl;
         bInitializing=false;
         return;
     }
@@ -144,12 +144,12 @@ void LocalMapping::InitializeScaleUW()
 
     
     // Before this line we are not changing the map
-    // unique_lock<mutex> lock(mpAtlas->GetCurrentMap()->mMutexMapUpdate);
-    // if ((fabs(mScale-1.f)>0.002))
-    // {
-    //     Sophus::SE3f Tgw(Eigen::Matrix3d::Identity().cast<float>(),Eigen::Vector3f::Zero());
-    //     mpAtlas->GetCurrentMap()->ApplyScaledRotation(Tgw,mScale,true);
-    // }
+    unique_lock<mutex> lock(mpAtlas->GetCurrentMap()->mMutexMapUpdate);
+    if ((fabs(mScaleAlt-1.f)>0.002))
+    {
+        Sophus::SE3f Tgw(Eigen::Matrix3d::Identity().cast<float>(),Eigen::Vector3f::Zero());
+        mpAtlas->GetCurrentMap()->ApplyScaledRotation(Tgw,mScaleAlt,true);
+    }
 
     bInitializing = false;
     return;
