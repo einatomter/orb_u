@@ -40,7 +40,7 @@ void LocalMapping::InitializeScaleUW()
         return;
 
     float minTime = 2.0;
-    int nMinKF = 5;
+    int nMinKF = 10;
 
     if(mpAtlas->KeyFramesInMap()<nMinKF)
         return;
@@ -97,7 +97,7 @@ void LocalMapping::InitializeScaleUW()
 
             // negative values are often an issue of bias instead of inverted scale
             // and is therefore not included in calculations
-            if(scale <= 0)
+            if(scale <= 0 || scale >= 10)
                 continue;
             sumScale += scale;
             count++;
