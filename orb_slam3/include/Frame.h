@@ -58,7 +58,7 @@ class Frame
 
 // UW
 public:
-    // Constructor MonoVP
+    // Constructor MonoUW
     Frame(const cv::Mat &imGray, const double &timeStamp, const UW::Point &pressureMeas, ORBextractor* extractor,ORBVocabulary* voc, GeometricCamera* pCamera, cv::Mat &distCoef, const float &bf, const float &thDepth, const float &initDepth = 0, Frame* pPrevF = static_cast<Frame*>(NULL), const IMU::Calib &ImuCalib = IMU::Calib());
 
     // Object containing pressure readings and info

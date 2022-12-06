@@ -55,7 +55,11 @@ const float DEPTH_NOISE = SENSOR_NOISE * 1000 / (FLUID_DENSITY * GRAVITY_VALUE);
 class Point
 {
 public:
-    Point(const float &pressureReading = 0);
+
+    Point();
+    // Copy Constructor
+    Point(const Point &point);
+    Point(const float &pressureReading);
 
     // converts pressure value (kPa) to depth value (m)
     // direction is also switched (up-positive down-negative)

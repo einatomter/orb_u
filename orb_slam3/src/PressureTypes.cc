@@ -7,7 +7,18 @@
 
 namespace UW
 {
+Point::Point():
+    pressure(PRESSURE_SEA_LEVEL)
+{
+    depth = pressureToDepth(pressure);
+    initDepth = depth;
+}
 
+
+// Copy Constructor
+Point::Point(const Point &point):
+    pressure(point.pressure), initDepth(point.initDepth), depth(point.depth)
+{}
 Point::Point(const float &pressureReading)
 {
     pressure = pressureReading;
