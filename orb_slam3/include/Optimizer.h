@@ -49,6 +49,10 @@ class Optimizer
 public:
     int static PoseOptimizationUW(Frame *pFrame);
 
+    void static LocalBAUW(KeyFrame *pKF, bool* pbStopFlag, Map* pMap, int& num_fixedKF, int& num_OptKF, int& num_MPs, int& num_edges);
+        
+    void static BAUW(const vector<KeyFrame *> &vpKFs, const vector<MapPoint *> &vpMP,
+              int nIterations, bool* pbStopFlag, const unsigned long nLoopKF, const bool bRobust);
 // UW END
 public:
 
