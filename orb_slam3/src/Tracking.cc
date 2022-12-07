@@ -2398,26 +2398,14 @@ void Tracking::Track()
                 if((!mbVelocity && !pCurrentMap->isImuInitialized()) || mCurrentFrame.mnId<mnLastRelocFrameId+2)
                 {
                     Verbose::PrintMess("TRACK: Track with respect to the reference KF ", Verbose::VERBOSITY_DEBUG);
-                    if(mbIsUW)  // UW
-                        TrackReferenceKeyFrameUW();
-                    else
-                        bOK = TrackReferenceKeyFrame();
+                    bOK = TrackReferenceKeyFrame();
                 }
                 else
                 {
                     Verbose::PrintMess("TRACK: Track with motion model", Verbose::VERBOSITY_DEBUG);
-                    if(mbIsUW)  // UW
-                    {
-                        bOK = TrackWithMotionModelUW();
-                        if(!bOK)
-                            bOK = TrackReferenceKeyFrameUW();
-                    }
-                    else
-                    {
-                        bOK = TrackWithMotionModel();
-                        if(!bOK)
-                            bOK = TrackReferenceKeyFrame();
-                    }
+                    bOK = TrackWithMotionModel();
+                    if(!bOK)
+                        bOK = TrackReferenceKeyFrame();
                 }
 
 
@@ -3210,7 +3198,10 @@ bool Tracking::TrackReferenceKeyFrame()
 
 
     // cout << " TrackReferenceKeyFrame mLastFrame.mTcw:  " << mLastFrame.mTcw << endl;
-    Optimizer::PoseOptimization(&mCurrentFrame);
+    if(mpAtlas->GetCurrentMap()->isScaleUWInitialized() && mbIsUW)  // UW
+        Optimizer::PoseOptimizationUW(&mCurrentFrame);
+    else
+        Optimizer::PoseOptimization(&mCurrentFrame);
 
     // Discard outliers
     int nmatchesMap = 0;
@@ -3374,7 +3365,10 @@ bool Tracking::TrackWithMotionModel()
     }
 
     // Optimize frame pose with all matches
-    Optimizer::PoseOptimization(&mCurrentFrame);
+    if(mpAtlas->GetCurrentMap()->isScaleUWInitialized() && mbIsUW)  // UW
+        Optimizer::PoseOptimizationUW(&mCurrentFrame);
+    else
+        Optimizer::PoseOptimization(&mCurrentFrame);
 
     // Discard outliers
     int nmatchesMap = 0;
@@ -3436,13 +3430,23 @@ bool Tracking::TrackLocalMap()
 
     int inliers;
     if (!mpAtlas->isImuInitialized())
-        Optimizer::PoseOptimization(&mCurrentFrame);
+    {
+        if(mpAtlas->GetCurrentMap()->isScaleUWInitialized() && mbIsUW)  // UW
+            Optimizer::PoseOptimizationUW(&mCurrentFrame);
+        else
+            Optimizer::PoseOptimization(&mCurrentFrame);
+    }
+    
     else
     {
         if(mCurrentFrame.mnId<=mnLastRelocFrameId+mnFramesToResetIMU)
         {
             Verbose::PrintMess("TLM: PoseOptimization ", Verbose::VERBOSITY_DEBUG);
-            Optimizer::PoseOptimization(&mCurrentFrame);
+            
+            if(mpAtlas->GetCurrentMap()->isScaleUWInitialized() && mbIsUW)  // UW
+                Optimizer::PoseOptimizationUW(&mCurrentFrame);
+            else
+                Optimizer::PoseOptimization(&mCurrentFrame);
         }
         else
         {
