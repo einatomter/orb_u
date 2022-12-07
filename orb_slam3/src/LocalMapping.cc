@@ -40,7 +40,7 @@ void LocalMapping::InitializeScaleUW()
         return;
 
     float minTime = 2.0;
-    int nMinKF = 10;
+    int nMinKF = 5;
 
     if(mpAtlas->KeyFramesInMap()<nMinKF)
         return;
@@ -72,8 +72,7 @@ void LocalMapping::InitializeScaleUW()
         lpKF.push_back(mpCurrentKeyFrame);
     }
 
-    mScale=1.0;
-
+    // mScale=1.0;
 
     // Optimizer::ScaleOptimizationP(mpAtlas->GetCurrentMap(), mScale);
 
@@ -118,7 +117,7 @@ void LocalMapping::InitializeScaleUW()
     // TODO: check standard deviation for spurious values
 
     // if too few valid scale measurements
-    if(count < 5)
+    if(count < 3)
     {
         // cout << "too few scale measurements" << endl;
         bInitializing=false;
@@ -127,9 +126,9 @@ void LocalMapping::InitializeScaleUW()
 
     mScale = sumScale/count;
     double mScaleAlt = sumMeasured/sumEstimate;
-    std::cout << "calculated scale:\t" << mScale << std::endl;
-    std::cout << "calculated alt:\t" << mScaleAlt << std::endl;
-    if(mScale >= 2) // 1e-1
+    // std::cout << "calculated scale:\t" << mScale << std::endl;
+    // std::cout << "calculated alt:\t" << mScaleAlt << std::endl;
+    if(mScale >= 10)
     {
         // cout << "scale too large, clamping" << endl;
         mScale = 2;
@@ -145,10 +144,25 @@ void LocalMapping::InitializeScaleUW()
     
     // Before this line we are not changing the map
     unique_lock<mutex> lock(mpAtlas->GetCurrentMap()->mMutexMapUpdate);
-    if ((fabs(mScaleAlt-1.f)>0.002))
+    if ((fabs(mScale-1.f)>0.002))
     {
         Sophus::SE3f Tgw(Eigen::Matrix3d::Identity().cast<float>(),Eigen::Vector3f::Zero());
-        mpAtlas->GetCurrentMap()->ApplyScaledRotation(Tgw,mScaleAlt,true);
+        mpAtlas->GetCurrentMap()->ApplyScaledRotation(Tgw,mScale,true);
+    }
+
+    // Decide whether scale has been initialized successfully
+    // Check if scale is consistent
+    if(fabs(mScale - 1.f) < mScaleMargin)
+        mScaleOKCount++;
+    else
+        mScaleOKCount = 0;
+
+    // If scale has been consecutively consistent, set successful initialization
+    if(mScaleOKCount >= mScaleOKThreshold)
+    {
+        cout << "Scale UW initialized successfully" << endl;
+        mpAtlas->GetCurrentMap()->setScaleUWInitialized();
+        mScaleOKCount = 0;
     }
 
     bInitializing = false;
@@ -168,7 +182,7 @@ LocalMapping::LocalMapping(System* pSys, Atlas *pAtlas, const float bMonocular, 
     mpSystem(pSys), mbMonocular(bMonocular), mbInertial(bInertial), mbResetRequested(false), mbResetRequestedActiveMap(false), mbFinishRequested(false), mbFinished(true), mpAtlas(pAtlas), bInitializing(false),
     mbAbortBA(false), mbStopped(false), mbStopRequested(false), mbNotStop(false), mbAcceptKeyFrames(true),
     mIdxInit(0), mScale(1.0), mInitSect(0), mbNotBA1(true), mbNotBA2(true), mIdxIteration(0), infoInertial(Eigen::MatrixXd::Zero(9,9)),
-    mbIsUW(bIsUW)
+    mbIsUW(bIsUW), mScaleOKCount(0), mScaleOKThreshold(10), mScaleMargin(0.03)
 {
     mnMatchesInliers = 0;
 

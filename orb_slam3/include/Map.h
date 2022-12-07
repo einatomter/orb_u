@@ -70,6 +70,7 @@ class Map
 public:
     void setScaleUWInitialized();
     bool isScaleUWInitialized();
+
 protected:
     bool mbScaleUWInitialized;
 // UW END
