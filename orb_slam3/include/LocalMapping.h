@@ -43,8 +43,9 @@ class LocalMapping
 // UW
 public:
     void InitializeScaleUW();
-    bool mbIsUW;
+    void InitializeInertialUW(float priorG, float priorA, bool bFIBA);
 
+    bool mbIsUW;
 
     int mScaleOKCount;  // counter for scale OK
 
