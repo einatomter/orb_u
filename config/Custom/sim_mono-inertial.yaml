@@ -37,7 +37,7 @@ Camera.newWidth: 600
 Camera.newHeight: 350
 
 # Camera frames per second 
-Camera.fps: 20
+Camera.fps: 30
 
 # Color order of the images (0: BGR, 1: RGB. It is ignored if images are grayscale)
 Camera.RGB: 1
@@ -47,10 +47,16 @@ IMU.T_b_c1: !!opencv-matrix
    rows: 4
    cols: 4
    dt: f
-   data: [ 1.0,  0.0,  0.0,  0.0,
-           0.0,  1.0,  0.0,  0.0,
-           0.0,  0.0,  1.0,  0.0,
+   data: [ 0.0,  0.0,  1.0,  0.0,
+          -1.0,  0.0,  0.0,  0.0,
+           0.0, -1.0,  0.0,  0.0,
            0.0,  0.0,  0.0,  1.0]
+
+# no transformation
+#    data: [ 1.0,  0.0,  0.0,  0.0,
+#            0.0,  1.0,  0.0,  0.0,
+#            0.0,  0.0,  1.0,  0.0,
+#            0.0,  0.0,  0.0,  1.0]
 
 # Insert KFs when recently lost
 IMU.InsertKFsWhenLost: 0
