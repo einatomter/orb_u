@@ -1,6 +1,6 @@
 /**
 * 
-* Adapted from ORB-SLAM3: Examples/ROS/src/ros_mono_inertial.cc
+* Adapted from ros_mono_inertial node
 *
 */
 
