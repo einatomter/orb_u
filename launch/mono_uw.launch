@@ -24,13 +24,13 @@
     <node name="rviz" pkg="rviz" type="rviz" args="-d $(find orb_slam3_ros)/config/orb_slam3_no_imu_sim.rviz" output="screen" />
     
     <!-- Trajectory path -->
-    <!-- <node pkg="hector_trajectory_server" type="hector_trajectory_server" name="trajectory_server_orb_slam3" output="screen" ns="orb_slam3_ros" >
+    <node pkg="hector_trajectory_server" type="hector_trajectory_server" name="trajectory_server_orb_slam3" output="screen" ns="orb_slam3_ros" >
         <param name="/target_frame_name" value="/world" />
         <param name="/source_frame_name" value="/camera" />
+        <param name="/source_frame_name" value="/imu" />
         <param name="/trajectory_update_rate" value="20.0" />
         <param name="/trajectory_publish_rate" value="20.0" />
-    </node> -->
-        <!-- <param name="/source_frame_name" value="/imu" /> -->
+    </node>
 
     <!-- Trajectory ground truth -->
     <!-- <node pkg="hector_trajectory_server" type="hector_trajectory_server" name="trajectory_server_ground_truth" output="screen" ns="orb_slam3_ros" >
