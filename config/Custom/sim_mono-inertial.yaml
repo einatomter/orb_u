@@ -20,10 +20,10 @@ File.version: "1.0"
 Camera.type: "PinHole"
 
 # Camera calibration and distortion parameters (OpenCV) 
-Camera1.fx: 554.383
-Camera1.fy: 554.383
-Camera1.cx: 320.5
-Camera1.cy: 240.5
+Camera1.fx: 1663.148
+Camera1.fy: 1663.148
+Camera1.cx: 960.5
+Camera1.cy: 540.5
 
 Camera1.k1: 0.0
 Camera1.k2: 0.0
@@ -37,7 +37,7 @@ Camera.newWidth: 600
 Camera.newHeight: 350
 
 # Camera frames per second 
-Camera.fps: 20
+Camera.fps: 30
 
 # Color order of the images (0: BGR, 1: RGB. It is ignored if images are grayscale)
 Camera.RGB: 1
@@ -60,7 +60,7 @@ IMU.NoiseGyro: 0.0003394
 IMU.NoiseAcc: 0.004
 IMU.GyroWalk: 0.000038785 
 IMU.AccWalk: 0.006
-IMU.Frequency: 200.0
+IMU.Frequency: 100.0
 
 #--------------------------------------------------------------------------------------------
 # ORB Parameters

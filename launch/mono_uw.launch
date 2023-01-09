@@ -2,20 +2,20 @@
     <param name="use_sim_time" value="false" />
 
     <!-- Main node -->
-    <node name="orb_slam3" pkg="orb_slam3_ros" type="ros_mono_uw" output="screen">
+    <node name="orb_slam3" pkg="orb_slam3_ros" type="ros_mono_inertial" output="screen">
         <!-- change the topics according to the dataset -->
         <remap from="/camera/image_raw"     to="/x3/cam/image_raw"/>
         <remap from="/imu"                  to="/x3/imu"/>
-        <remap from="/pressure"             to="/x3/pressure"/>
+        <!-- <remap from="/pressure"             to="/x3/pressure"/> -->
 
         <!-- Parameters for original ORB-SLAM3 -->
         <param name="voc_file"      type="string" value="$(find orb_slam3_ros)/orb_slam3/Vocabulary/ORBvoc.txt.bin"/>
-        <param name="settings_file" type="string" value="$(find orb_slam3_ros)/config/Custom/sim_mono.yaml"/>
+        <param name="settings_file" type="string" value="$(find orb_slam3_ros)/config/Custom/sim_mono-inertial.yaml"/>
 
         <!-- Parameters for ROS -->
         <param name="world_frame_id"    type="string"   value="world" />
         <param name="cam_frame_id"      type="string"   value="camera" />
-        <!-- <param name="imu_frame_id"      type="string"   value="imu" /> -->
+        <param name="imu_frame_id"      type="string"   value="imu" />
         <param name="enable_pangolin"   type="bool"     value="false" />
     </node>
     
