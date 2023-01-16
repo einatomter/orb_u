@@ -50,21 +50,36 @@ namespace ORB_SLAM3
 
 Sophus::SE3f Tracking::GrabImageMonoUW(const cv::Mat &im, const UW::Point &pressureMeas, const double &timestamp, string filename)
 {
-    mImGray = im;
-    if(mImGray.channels()==3)
-    {
-        if(mbRGB)
-            cvtColor(mImGray,mImGray,cv::COLOR_RGB2GRAY);
-        else
-            cvtColor(mImGray,mImGray,cv::COLOR_BGR2GRAY);
-    }
-    else if(mImGray.channels()==4)
-    {
-        if(mbRGB)
-            cvtColor(mImGray,mImGray,cv::COLOR_RGBA2GRAY);
-        else
-            cvtColor(mImGray,mImGray,cv::COLOR_BGRA2GRAY);
-    }
+    // mImGray = im;
+    // if(mImGray.channels()==3)
+    // {
+    //     if(mbRGB)
+    //         cvtColor(mImGray,mImGray,cv::COLOR_RGB2GRAY);
+    //     else
+    //         cvtColor(mImGray,mImGray,cv::COLOR_BGR2GRAY);
+    // }
+    // else if(mImGray.channels()==4)
+    // {
+    //     if(mbRGB)
+    //         cvtColor(mImGray,mImGray,cv::COLOR_RGBA2GRAY);
+    //     else
+    //         cvtColor(mImGray,mImGray,cv::COLOR_BGRA2GRAY);
+    // }
+
+    // UW CLAHE, comment out grayscale conversion if using this one
+    cv::Mat lab_image;
+    cv::cvtColor(im, lab_image, cv::COLOR_RGB2Lab);
+
+    std::vector<cv::Mat> lab_channel(3);
+    cv::split(lab_image, lab_channel);
+
+    // apply CLAHE
+    double clip_limit = 3;
+    int grid_size = 4;
+
+    cv::Ptr<cv::CLAHE> clahe = cv::createCLAHE(clip_limit, cv::Size(grid_size ,grid_size));
+    clahe->apply(lab_channel[0], mImGray);
+
 
     // Copy pressure object and set initial depth value
     UW::Point mpressureMeas = pressureMeas;
@@ -2030,6 +2045,8 @@ Sophus::SE3f Tracking::GrabImageMonocular(const cv::Mat &im, const double &times
         else
             cvtColor(mImGray,mImGray,cv::COLOR_BGRA2GRAY);
     }
+
+    // UW CLAHE, comment out grayscale conversion if using this one
 
     if (mSensor == System::MONOCULAR)
     {

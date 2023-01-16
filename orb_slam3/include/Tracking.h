@@ -58,6 +58,7 @@ class Tracking
 // UW
 public:
     Sophus::SE3f GrabImageMonoUW(const cv::Mat &im, const UW::Point &pressureMeas, const double &timestamp, string filename);
+    // void ImageToClahe(cv::Mat src, cv::Mat dst);
     void MonocularInitializationUW();
     bool TrackReferenceKeyFrameUW();
     bool TrackWithMotionModelUW();
