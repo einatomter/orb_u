@@ -48,38 +48,36 @@ namespace ORB_SLAM3
 //  Mono initialization UW
 //  Grab image UW
 
+
+void Tracking::ApplyClahe(const cv::Mat &src, cv::Mat &dst)
+{
+    cv::Ptr<cv::CLAHE> clahe = cv::createCLAHE(mClaheClipLimit, cv::Size(mClaheGridSize ,mClaheGridSize));
+    clahe->apply(src, dst);
+}
+
 Sophus::SE3f Tracking::GrabImageMonoUW(const cv::Mat &im, const UW::Point &pressureMeas, const double &timestamp, string filename)
 {
-    // mImGray = im;
-    // if(mImGray.channels()==3)
-    // {
-    //     if(mbRGB)
-    //         cvtColor(mImGray,mImGray,cv::COLOR_RGB2GRAY);
-    //     else
-    //         cvtColor(mImGray,mImGray,cv::COLOR_BGR2GRAY);
-    // }
-    // else if(mImGray.channels()==4)
-    // {
-    //     if(mbRGB)
-    //         cvtColor(mImGray,mImGray,cv::COLOR_RGBA2GRAY);
-    //     else
-    //         cvtColor(mImGray,mImGray,cv::COLOR_BGRA2GRAY);
-    // }
+    mImGray = im;
 
-    // UW CLAHE, comment out grayscale conversion if using this one
-    cv::Mat lab_image;
-    cv::cvtColor(im, lab_image, cv::COLOR_RGB2Lab);
 
-    std::vector<cv::Mat> lab_channel(3);
-    cv::split(lab_image, lab_channel);
+    if(mImGray.channels()==3)
+    {
+        if(mbRGB)
+            cvtColor(mImGray,mImGray,cv::COLOR_RGB2GRAY);
+        else
+            cvtColor(mImGray,mImGray,cv::COLOR_BGR2GRAY);
+    }
+    else if(mImGray.channels()==4)
+    {
+        if(mbRGB)
+            cvtColor(mImGray,mImGray,cv::COLOR_RGBA2GRAY);
+        else
+            cvtColor(mImGray,mImGray,cv::COLOR_BGRA2GRAY);
+    }
 
-    // apply CLAHE
-    double clip_limit = 3;
-    int grid_size = 4;
-
-    cv::Ptr<cv::CLAHE> clahe = cv::createCLAHE(clip_limit, cv::Size(grid_size ,grid_size));
-    clahe->apply(lab_channel[0], mImGray);
-
+    // Assumed remaining channel is grayscale
+    // Apply CLAHE
+    ApplyClahe(mImGray, mImGray);
 
     // Copy pressure object and set initial depth value
     UW::Point mpressureMeas = pressureMeas;
@@ -509,7 +507,7 @@ Tracking::Tracking(System *pSys, ORBVocabulary* pVoc, FrameDrawer *pFrameDrawer,
     mbReadyToInitializate(false), mpSystem(pSys), mpViewer(NULL), bStepByStep(false),
     mpFrameDrawer(pFrameDrawer), mpMapDrawer(pMapDrawer), mpAtlas(pAtlas), mnLastRelocFrameId(0), time_recently_lost(5.0),
     mnInitialFrameId(0), mbCreatedMap(false), mnFirstFrameId(0), mpCamera2(nullptr), mpLastKeyFrame(static_cast<KeyFrame*>(NULL)),
-    mbIsUW(bIsUW)
+    mbIsUW(bIsUW), mInitDepth(0), mClaheClipLimit(3), mClaheGridSize(4)
 {
     // Load camera parameters from settings file
     if(settings){
@@ -561,7 +559,7 @@ Tracking::Tracking(System *pSys, ORBVocabulary* pVoc, FrameDrawer *pFrameDrawer,
     mbInitWith3KFs = false;
     mnNumDataset = 0;
 
-    mInitDepth = 0; // UW
+    // TODO: add parameters (CLAHE) to settings
 
     vector<GeometricCamera*> vpCams = mpAtlas->GetAllCameras();
     std::cout << "There are " << vpCams.size() << " cameras in the atlas" << std::endl;
