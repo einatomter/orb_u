@@ -131,14 +131,15 @@ void ImageGrabber::SyncWithImu()
 {
     while(1)
     {
-        if (!img0Buf.empty()&&!mpImuGb->imuBuf.empty())
+        // if (!img0Buf.empty()&&!mpImuGb->imuBuf.empty())
+        if (!img0Buf.empty())
         {
             cv::Mat im;
             double tIm = 0;
 
             tIm = img0Buf.front()->header.stamp.toSec();
-            if(tIm>mpImuGb->imuBuf.back()->header.stamp.toSec())
-                continue;
+            // if(tIm>mpImuGb->imuBuf.back()->header.stamp.toSec())
+            //     continue;
             
             this->mBufMutex.lock();
             im = GetImage(img0Buf.front());
