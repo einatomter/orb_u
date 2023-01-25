@@ -5,7 +5,7 @@
     <node name="orb_slam3" pkg="orb_slam3_ros" type="ros_mono" output="screen">
         <!-- change the topics according to the dataset -->
         <remap from="/camera/image_raw"     to="/cam/image_raw"/>
-        <!-- <remap from="/imu"                  to="/x3/imu"/> -->
+        <remap from="/imu"                  to="/irl/imu"/>
         <!-- <remap from="/pressure"             to="/x3/pressure"/> -->
 
         <!-- Parameters for original ORB-SLAM3 -->
