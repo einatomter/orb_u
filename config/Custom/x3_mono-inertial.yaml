@@ -31,15 +31,15 @@ File.version: "1.0"
 Camera.type: "PinHole"
 
 # Camera calibration and distortion parameters (OpenCV) 
-Camera1.fx: 1354.45761
-Camera1.fy: 1379.97405
-Camera1.cx: 891.06972
-Camera1.cy: 756.19288
+Camera1.fx: 767.1214176291104
+Camera1.fy: 764.7053817945867
+Camera1.cx: 956.0340096999855
+Camera1.cy: 509.09066106573584
 
-Camera1.k1: -0.2708139
-Camera1.k2: 0.2005247
-Camera1.p1: 0.0208302
-Camera1.p2: 0.0002806
+Camera1.k1: 0.18328688098858342
+Camera1.k2: 0.014990482526988948
+Camera1.p1: 0.00011013454552224574
+Camera1.p2: 0.005184759104249231
 
 Camera.width: 1920
 Camera.height: 1080
@@ -59,10 +59,13 @@ IMU.T_b_c1: !!opencv-matrix
    cols: 4
    dt: f
    data: [  0.0,   0.0,  1.0,  0.0,
-           -1.0,   0.0,  0.0,  0.0,
-            0.0,  -1.0,  0.0,  0.0,
+            1.0,   0.0,  0.0,  0.0,
+            0.0,   1.0,  0.0,  0.0,
             0.0,   0.0,  0.0,  1.0]
-
+#    data: [  0.0,   0.0,  1.0,  0.0,
+#            -1.0,   0.0,  0.0,  0.0,
+#             0.0,  -1.0,  0.0,  0.0,
+#             0.0,   0.0,  0.0,  1.0]
 # Insert KFs when recently lost
 IMU.InsertKFsWhenLost: 0
 
