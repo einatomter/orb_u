@@ -5,8 +5,8 @@
 Currently only implemented with monocular setups.
 
 ## To-do:
-- ~~ Implement depth readings with mono setup ~~
-- ~~ Add CLAHE image preprocessing ~~
+- ~~Implement depth readings with mono setup~~
+- ~~Add CLAHE image preprocessing~~
 - Implement depth readings with mono-inertial setup
 - Add underwater ORB vocabulary
 - Add prerequisites used in installing ROS + standard packages
