@@ -11,9 +11,9 @@ Currently only implemented with monocular setups.
 - Add underwater ORB vocabulary
 - Add prerequisites used in installing ROS + standard packages
 
-Uses the ROS implementation written by tien94 [link to ROS implementation](https://github.com/thien94/orb_slam3_ros).
+Uses the ROS implementation written by tien94. [The implementation can be found here.](https://github.com/thien94/orb_slam3_ros)
 
-The installation instructions are copied over from thien94's ROS implementation.
+The instructions are copied from the same repo.
 
 This package uses ```catkin build```. Tested on Ubuntu 20.04.
 ## 1. Prerequisites
