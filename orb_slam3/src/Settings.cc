@@ -124,8 +124,36 @@ namespace ORB_SLAM3 {
         }
     }
 
-    Settings::Settings(const std::string &configFile, const int& sensor) :
-    bNeedToUndistort_(false), bNeedToRectify_(false), bNeedToResize1_(false), bNeedToResize2_(false) {
+
+// -------------------------------------------------------------------------------------------
+// UW
+// -------------------------------------------------------------------------------------------
+
+    void Settings::readClahe(cv::FileStorage& fSettings)
+    {
+        bool found; 
+        
+        bUseClahe_ = (bool) readParameter<int>(fSettings, "CLAHE.Enable", found, false);
+
+        if (!found)
+        {
+            bUseClahe_ = false;
+            return;
+        }
+
+        claheClipLimit_ = readParameter<float>(fSettings, "CLAHE.ClipLimit", found);
+        claheGridWidth_ = readParameter<int>(fSettings, "CLAHE.GridWidth", found);
+        claheGridHeight_ = readParameter<int>(fSettings, "CLAHE.GridHeight", found);
+    }
+
+// -------------------------------------------------------------------------------------------
+// UW END
+// -------------------------------------------------------------------------------------------
+
+
+
+    Settings::Settings(const std::string &configFile, const int& sensor, const bool& isUW) :
+    bNeedToUndistort_(false), bNeedToRectify_(false), bNeedToResize1_(false), bNeedToResize2_(false){
         sensor_ = sensor;
 
         //Open settings file
@@ -163,6 +191,17 @@ namespace ORB_SLAM3 {
             readRGBD(fSettings);
             cout << "\t-Loaded RGB-D calibration" << endl;
         }
+
+        // UW parameters
+        // if (isUW)
+        // {
+        readClahe(fSettings);
+
+        if (!bUseClahe_)
+            cout << "\tUnderwater mode enabled but no CLAHE or depth parameters specified" << endl;
+        else
+            cout << "\t-Loaded underwater settings" << endl;
+        // }
 
         readORB(fSettings);
         cout << "\t-Loaded ORB settings" << endl;
@@ -646,6 +685,14 @@ namespace ORB_SLAM3 {
         output << "\t-ORB number of scales: " << settings.nLevels_ << endl;
         output << "\t-Initial FAST threshold: " << settings.initThFAST_ << endl;
         output << "\t-Min FAST threshold: " << settings.minThFAST_ << endl;
+
+        if (settings.bUseClahe_)
+        {
+            std::cout << "CLAHE enabled" << std::endl;
+            std::cout << "\t-Clip limit: " << settings.claheClipLimit_ << std::endl;
+            std::cout << "\t-Grid width: " << settings.claheGridWidth_ << std::endl;
+            std::cout << "\t-Grid height: " << settings.claheGridHeight_ << std::endl;
+        }
 
         return output;
     }

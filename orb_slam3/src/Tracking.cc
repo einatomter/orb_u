@@ -48,10 +48,23 @@ namespace ORB_SLAM3
 //  Mono initialization UW
 //  Grab image UW
 
+void Tracking::ParseUWParams(Settings *settings)
+{
+    mbUseClahe = settings->bUseClahe();
+
+    if (mbUseClahe)
+    {
+        mClaheClipLimit = settings->claheClipLimit();
+        mClaheGridWidth = settings->claheGridWidth();
+        mClaheGridHeight = settings->claheGridHeight();
+    }
+
+}
+
 
 void Tracking::ApplyClahe(const cv::Mat &src, cv::Mat &dst)
 {
-    cv::Ptr<cv::CLAHE> clahe = cv::createCLAHE(mClaheClipLimit, cv::Size(mClaheGridSize ,mClaheGridSize));
+    cv::Ptr<cv::CLAHE> clahe = cv::createCLAHE(mClaheClipLimit, cv::Size(mClaheGridWidth, mClaheGridHeight));
     clahe->apply(src, dst);
 }
 
@@ -76,8 +89,8 @@ Sophus::SE3f Tracking::GrabImageMonoUW(const cv::Mat &im, const UW::Point &press
     }
 
     // Assumed remaining channel is grayscale
-    // Apply CLAHE
-    ApplyClahe(mImGray, mImGray);
+    if (mbUseClahe)
+        ApplyClahe(mImGray, mImGray);
 
     // Copy pressure object and set initial depth value
     UW::Point mpressureMeas = pressureMeas;
@@ -507,7 +520,7 @@ Tracking::Tracking(System *pSys, ORBVocabulary* pVoc, FrameDrawer *pFrameDrawer,
     mbReadyToInitializate(false), mpSystem(pSys), mpViewer(NULL), bStepByStep(false),
     mpFrameDrawer(pFrameDrawer), mpMapDrawer(pMapDrawer), mpAtlas(pAtlas), mnLastRelocFrameId(0), time_recently_lost(5.0),
     mnInitialFrameId(0), mbCreatedMap(false), mnFirstFrameId(0), mpCamera2(nullptr), mpLastKeyFrame(static_cast<KeyFrame*>(NULL)),
-    mbIsUW(bIsUW), mInitDepth(0), mClaheClipLimit(3), mClaheGridSize(4)
+    mbIsUW(bIsUW), mInitDepth(0), mbUseClahe(false)
 {
     // Load camera parameters from settings file
     if(settings){
@@ -1077,6 +1090,9 @@ void Tracking::newParameterLoader(Settings *settings) {
     mpImuCalib = new IMU::Calib(Tbc,Ng*sf,Na*sf,Ngw/sf,Naw/sf);
 
     mpImuPreintegratedFromLastKF = new IMU::Preintegrated(IMU::Bias(),*mpImuCalib);
+
+    // if (mbIsUW) // UW
+    ParseUWParams(settings);
 }
 
 bool Tracking::ParseCamParamFile(cv::FileStorage &fSettings)
@@ -2044,7 +2060,11 @@ Sophus::SE3f Tracking::GrabImageMonocular(const cv::Mat &im, const double &times
             cvtColor(mImGray,mImGray,cv::COLOR_BGRA2GRAY);
     }
 
-    // UW CLAHE, comment out grayscale conversion if using this one
+    // UW
+    // Assumed remaining channel is grayscale
+    if (mbUseClahe)
+        ApplyClahe(mImGray, mImGray);
+
 
     if (mSensor == System::MONOCULAR)
     {

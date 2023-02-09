@@ -58,6 +58,9 @@ class Tracking
 // UW
 public:
     Sophus::SE3f GrabImageMonoUW(const cv::Mat &im, const UW::Point &pressureMeas, const double &timestamp, string filename);
+    
+    void ParseUWParams(Settings *settings);
+
     void ApplyClahe(const cv::Mat &src, cv::Mat &dst);
     void MonocularInitializationUW();
     bool TrackReferenceKeyFrameUW();
@@ -68,8 +71,10 @@ public:
     float mInitDepth;
 
     // CLAHE parameters
+    bool mbUseClahe;
     double mClaheClipLimit;
-    int mClaheGridSize;
+    int mClaheGridWidth;
+    int mClaheGridHeight;
 
 // UW END
 public:

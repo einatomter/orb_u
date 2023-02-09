@@ -37,6 +37,25 @@ namespace ORB_SLAM3 {
     //TODO: change to double instead of float
 
     class Settings {
+// UW
+    public:      
+        bool bUseClahe() {return bUseClahe_;}
+        float claheClipLimit() {return claheClipLimit_;}
+        int claheGridWidth() {return claheGridWidth_;}
+        int claheGridHeight() {return claheGridHeight_;}
+
+    private:
+        // CLAHE
+        void readClahe(cv::FileStorage& fSettings);
+
+        bool bUseClahe_;
+        float claheClipLimit_;
+        int claheGridWidth_;
+        int claheGridHeight_;
+
+        // Pressure sensor orientation
+
+// UW END
     public:
         /*
          * Enum for the different camera types implemented
@@ -55,7 +74,7 @@ namespace ORB_SLAM3 {
         /*
          * Constructor from file
          */
-        Settings(const std::string &configFile, const int& sensor);
+        Settings(const std::string &configFile, const int& sensor, const bool& isUW = false);
 
         /*
          * Ostream operator overloading to dump settings to the terminal
