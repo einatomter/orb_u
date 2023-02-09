@@ -1,0 +1,111 @@
+%YAML:1.0
+
+#--------------------------------------------------------------------------------------------
+# System config
+#--------------------------------------------------------------------------------------------
+
+# When the variables are commented, the system doesn't load a previous session or not store the current one
+
+# If the LoadFile doesn't exist, the system give a message and create a new Atlas from scratch
+#System.LoadAtlasFromFile: "Session_MH01_MH02_MH03_Mono"
+
+# The store file is created from the current session, if a file with the same name exists it is deleted
+#System.SaveAtlasToFile: "Session_MH01_MH02_MH03_Mono"
+
+#--------------------------------------------------------------------------------------------
+# Custom Parameters
+#--------------------------------------------------------------------------------------------
+
+# CLAHE
+# clip_limit: 3 #3 - 4 ish
+# grid_size: 4 # 4 - 20, heavy diminishing returns after 10 ish
+
+# Pressure sensor noise
+# something
+
+#--------------------------------------------------------------------------------------------
+# Camera Parameters. Adjust them!
+#--------------------------------------------------------------------------------------------
+File.version: "1.0"
+
+Camera.type: "KannalaBrandt8"
+
+# Camera calibration and distortion parameters (OpenCV)
+Camera1.fx: 413.32595366566017
+Camera1.fy: 413.70198739483686
+Camera1.cx: 305.9507483284928
+Camera1.cy: 259.4439948946375
+
+# Kannala-Brandt distortion parameters
+Camera1.k1: -0.06125568297136998
+Camera1.k2: -0.003796743395135256
+Camera1.k3: 0.027326634771204592
+Camera1.k4: -0.030296403142887066
+
+Camera.width: 640
+Camera.height: 512
+
+# Camera frames per second 
+Camera.fps: 20
+
+# Color order of the images (0: BGR, 1: RGB. It is ignored if images are grayscale)
+Camera.RGB: 1
+
+# Transformation from camera to body-frame (imu)
+IMU.T_b_c1: !!opencv-matrix
+   rows: 4
+   cols: 4
+   dt: f
+   data: [  -0.99978035,  0.0169654,  0.01230552, -0.01719238,
+            0.01210101, -0.01210461, 0.99985351,  0.14944769,
+            0.01711187,  0.9997828,  0.01189665, -0.01915984,
+            0.0,   0.0,  0.0,  1.0]
+#    data: [  0.0,   0.0,  1.0,  0.0,
+#            -1.0,   0.0,  0.0,  0.0,
+#             0.0,  -1.0,  0.0,  0.0,
+#             0.0,   0.0,  0.0,  1.0]
+# Insert KFs when recently lost
+# IMU.InsertKFsWhenLost: 0
+
+# IMU noise
+IMU.NoiseGyro: 0.001
+IMU.NoiseAcc: 0.02
+IMU.GyroWalk: 0.00005
+IMU.AccWalk: 0.001
+IMU.Frequency: 200.0
+
+#--------------------------------------------------------------------------------------------
+# ORB Parameters
+#--------------------------------------------------------------------------------------------
+
+# ORB Extractor: Number of features per image
+ORBextractor.nFeatures: 1000
+
+# ORB Extractor: Scale factor between levels in the scale pyramid 	
+ORBextractor.scaleFactor: 1.2
+
+# ORB Extractor: Number of levels in the scale pyramid	
+ORBextractor.nLevels: 8
+
+# ORB Extractor: Fast threshold
+# Image is divided in a grid. At each cell FAST are extracted imposing a minimum response.
+# Firstly we impose iniThFAST. If no corners are detected we impose a lower value minThFAST
+# You can lower these values if your images have low contrast
+ORBextractor.iniThFAST: 10
+ORBextractor.minThFAST: 3
+
+#--------------------------------------------------------------------------------------------
+# Viewer Parameters
+#---------------------------------------------------------------------------------------------
+Viewer.KeyFrameSize: 0.05
+Viewer.KeyFrameLineWidth: 1.0
+Viewer.GraphLineWidth: 0.9
+Viewer.PointSize: 2.0
+Viewer.CameraSize: 0.08
+Viewer.CameraLineWidth: 3.0
+Viewer.ViewpointX: 0.0
+Viewer.ViewpointY: -0.7
+Viewer.ViewpointZ: -1.8
+Viewer.ViewpointF: 500.0
+Viewer.imageViewScale: 1.0
+
