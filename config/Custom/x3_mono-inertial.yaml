@@ -17,11 +17,13 @@
 #--------------------------------------------------------------------------------------------
 
 # CLAHE
-# clip_limit: 3 #3 - 4 ish
-# grid_size: 4 # 4 - 20, heavy diminishing returns after 10 ish
+CLAHE.Enable: 1
+CLAHE.ClipLimit:  3.0 #3 - 4 ish
+CLAHE.GridWidth:  4 # 4 - 20, heavy diminishing returns after 10 ish
+CLAHE.GridHeight: 4 # 4 - 20, heavy diminishing returns after 10 ish
 
 # Pressure sensor noise
-# something
+# Pressure sensor orientation
 
 #--------------------------------------------------------------------------------------------
 # Camera Parameters. Adjust them!
