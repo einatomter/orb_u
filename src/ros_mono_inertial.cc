@@ -16,6 +16,7 @@ public:
     void GrabImu(const sensor_msgs::ImuConstPtr &imu_msg);
 
     queue<sensor_msgs::ImuConstPtr> imuBuf;
+    sensor_msgs::Imu bufLastVal;
     std::mutex mBufMutex;
 };
 
@@ -166,10 +167,28 @@ void ImageGrabber::SyncWithImu()
                     
                     Wbb << mpImuGb->imuBuf.front()->angular_velocity.x, mpImuGb->imuBuf.front()->angular_velocity.y, mpImuGb->imuBuf.front()->angular_velocity.z;
 
+                    mpImuGb->bufLastVal = *mpImuGb->imuBuf.front();
+                    // mpImuGb->bufLastVal.linear_acceleration = mpImuGb->imuBuf.front()->linear_acceleration;
+
                     mpImuGb->imuBuf.pop();
                 }
             }
             mpImuGb->mBufMutex.unlock();
+
+            // Skip frames with empty imu measurements,
+            // Can happen during initialization
+            if (vImuMeas.empty())
+            {
+                double t = tIm;
+
+                cv::Point3f acc(mpImuGb->bufLastVal.linear_acceleration.x, mpImuGb->bufLastVal.linear_acceleration.y, mpImuGb->bufLastVal.linear_acceleration.z);
+                cv::Point3f gyr(mpImuGb->bufLastVal.angular_velocity.x, mpImuGb->bufLastVal.angular_velocity.y, mpImuGb->bufLastVal.angular_velocity.z);
+                
+                vImuMeas.push_back(ORB_SLAM3::IMU::Point(acc, gyr, t));
+                std::cout << "Vector empty, reusing imu measurement" << std::endl;
+                // continue;
+            }
+            
 
             // ORB-SLAM3 runs in TrackMonocular()
             Sophus::SE3f Tcw = pSLAM->TrackMonocular(im, tIm, vImuMeas);

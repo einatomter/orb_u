@@ -31,15 +31,15 @@ File.version: "1.0"
 Camera.type: "PinHole"
 
 # Camera calibration and distortion parameters (OpenCV) 
-Camera1.fx: 934.8199911524349
-Camera1.fy: 936.4006561525541
-Camera1.cx: 967.2679280100416
-Camera1.cy: 511.43915316950785
+Camera1.fx: 929.5640382649523
+Camera1.fy: 934.00365462692
+Camera1.cx: 972.5313464390525
+Camera1.cy: 534.1323937473902
 
-Camera1.k1: -0.212992
-Camera1.k2: 0.041363
-Camera1.p1: -0.000334
-Camera1.p2: -0.000479
+Camera1.k1: -0.2076254524227066
+Camera1.k2: 0.041941200784073394
+Camera1.p1: -0.0016360913155228126
+Camera1.p2: 0.0001791785534410563
 
 Camera.width: 1920
 Camera.height: 1080
@@ -48,7 +48,7 @@ Camera.newWidth: 600
 Camera.newHeight: 350
 
 # Camera frames per second 
-Camera.fps: 30
+Camera.fps: 20
 
 # Color order of the images (0: BGR, 1: RGB. It is ignored if images are grayscale)
 Camera.RGB: 1
@@ -58,22 +58,22 @@ IMU.T_b_c1: !!opencv-matrix
    rows: 4
    cols: 4
    dt: f
-   data: [  0.0,   0.0,  1.0,  0.3566,
-            1.0,   0.0,  0.0,  0.008,
-            0.0,   1.0,  0.0, -0.23,
+   data: [  0.0,   0.0,  1.0,  0.0,
+            -1.0,   0.0,  0.0,  0.0,
+            0.0,   -1.0,  0.0,  0.1,
             0.0,   0.0,  0.0,  1.0]
 #    data: [  0.0,   0.0,  1.0,  0.0,
 #            -1.0,   0.0,  0.0,  0.0,
 #             0.0,  -1.0,  0.0,  0.0,
 #             0.0,   0.0,  0.0,  1.0]
 # Insert KFs when recently lost
-IMU.InsertKFsWhenLost: 0
+# IMU.InsertKFsWhenLost: 0
 
 # IMU noise
-IMU.NoiseGyro: 0.0003394
-IMU.NoiseAcc: 0.004
-IMU.GyroWalk: 0.000038785 
-IMU.AccWalk: 0.006
+IMU.NoiseGyro: 1.00023029252538541575 
+IMU.NoiseAcc: 1.002364488787306905 
+IMU.GyroWalk: 1.011655985582204 
+IMU.AccWalk: 1.7004246977998612867 
 IMU.Frequency: 100.0
 
 #--------------------------------------------------------------------------------------------
@@ -92,7 +92,7 @@ ORBextractor.nLevels: 8
 # ORB Extractor: Fast threshold
 # Image is divided in a grid. At each cell FAST are extracted imposing a minimum response.
 # Firstly we impose iniThFAST. If no corners are detected we impose a lower value minThFAST
-# You can lower these values if your images have low contrast			
+# You can lower these values if your images have low contrast
 ORBextractor.iniThFAST: 10
 ORBextractor.minThFAST: 3
 
