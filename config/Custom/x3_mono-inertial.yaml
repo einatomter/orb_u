@@ -26,7 +26,7 @@ CLAHE.GridHeight: 4     # 4 - 20, heavy diminishing returns after 10 ish
 DSensor.UsePressure: 0  # default 0
 
 # Camera depth axis
-# Axis is normalized within ORB-SLAM if not in normalized form
+# Axis is normalized when reading parameters
 DSensor.CameraDepthAxis.x: 0.0
 DSensor.CameraDepthAxis.y: 1.0
 DSensor.CameraDepthAxis.z: 0.0
