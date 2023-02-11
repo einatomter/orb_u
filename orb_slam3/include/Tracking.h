@@ -63,9 +63,6 @@ public:
 
     void ApplyClahe(const cv::Mat &src, cv::Mat &dst);
     void MonocularInitializationUW();
-    bool TrackReferenceKeyFrameUW();
-    bool TrackWithMotionModelUW();
-    bool TrackLocalMapUW();
 
     bool mbIsUW;
     float mInitDepth;

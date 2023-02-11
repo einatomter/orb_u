@@ -44,10 +44,6 @@ namespace ORB_SLAM3
 // UW
 // -------------------------------------------------------------------------------------------
 
-// TODO: integrate changes to base functions. Only meaningful functions to remain separated are:
-//  Mono initialization UW
-//  Grab image UW
-
 void Tracking::ParseUWParams(Settings *settings)
 {
     mbUseClahe = settings->bUseClahe();
@@ -191,17 +187,17 @@ void Tracking::MonocularInitializationUW()
 
         // Check if initial pressure object has valid values
         // if (isnan(mInitDepth) || mInitialFrame.mPressureMeas.pressure > 1e-1)
-        if (isnan(mInitDepth)|| mInitialFrame.mPressureMeas.pressure < 1e-1)
+        if (isnan(mInitDepth))
         {
             // if(isnan(mInitDepth)){
-            //     std::cout << "error: init depth is NaN" << std::endl;
+            //     std::cerr << "error: init depth is NaN" << std::endl;
             // }
             // else if (mInitialFrame.mPressureMeas.pressure == 0){
-            //     std::cout << "error: init pressure reading is 0" << std::endl;
+            //     std::cerr << "error: init pressure reading is 0" << std::endl;
             // }
             // else
             // {
-            std::cout << "unexpected error: initial pressure values: " << mInitialFrame.mPressureMeas.pressure << std::endl;
+            std::cerr << "unexpected error: initial pressure values: " << mInitialFrame.mPressureMeas.pressure << std::endl;
             // }
 
             mbReadyToInitializate = false;
@@ -231,275 +227,6 @@ void Tracking::MonocularInitializationUW()
 
             CreateInitialMapMonocular();
         }
-    }
-}
-
-bool Tracking::TrackReferenceKeyFrameUW()
-{
-    // Compute Bag of Words vector
-    mCurrentFrame.ComputeBoW();
-
-    // We perform first an ORB matching with the reference keyframe
-    // If enough matches are found we setup a PnP solver
-    ORBmatcher matcher(0.7,true);
-    vector<MapPoint*> vpMapPointMatches;
-
-    int nmatches = matcher.SearchByBoW(mpReferenceKF,mCurrentFrame,vpMapPointMatches);
-
-    if(nmatches<15)
-    {
-        cout << "TRACK_REF_KF: Less than 15 matches!!\n";
-        return false;
-    }
-
-    mCurrentFrame.mvpMapPoints = vpMapPointMatches;
-    mCurrentFrame.SetPose(mLastFrame.GetPose());
-
-    //mCurrentFrame.PrintPointDistribution();
-
-
-    // cout << " TrackReferenceKeyFrame mLastFrame.mTcw:  " << mLastFrame.mTcw << endl;
-    Optimizer::PoseOptimizationUW(&mCurrentFrame);
-
-    // Discard outliers
-    int nmatchesMap = 0;
-    for(int i =0; i<mCurrentFrame.N; i++)
-    {
-        //if(i >= mCurrentFrame.Nleft) break;
-        if(mCurrentFrame.mvpMapPoints[i])
-        {
-            if(mCurrentFrame.mvbOutlier[i])
-            {
-                MapPoint* pMP = mCurrentFrame.mvpMapPoints[i];
-
-                mCurrentFrame.mvpMapPoints[i]=static_cast<MapPoint*>(NULL);
-                mCurrentFrame.mvbOutlier[i]=false;
-                if(i < mCurrentFrame.Nleft){
-                    pMP->mbTrackInView = false;
-                }
-                else{
-                    pMP->mbTrackInViewR = false;
-                }
-                pMP->mbTrackInView = false;
-                pMP->mnLastFrameSeen = mCurrentFrame.mnId;
-                nmatches--;
-            }
-            else if(mCurrentFrame.mvpMapPoints[i]->Observations()>0)
-                nmatchesMap++;
-        }
-    }
-
-    if (mSensor == System::IMU_MONOCULAR || mSensor == System::IMU_STEREO || mSensor == System::IMU_RGBD)
-        return true;
-    else
-        return nmatchesMap>=10;
-}
-
-bool Tracking::TrackWithMotionModelUW()
-{
-    ORBmatcher matcher(0.9,true);
-
-    // Update last frame pose according to its reference keyframe
-    // Create "visual odometry" points if in Localization Mode
-    UpdateLastFrame();
-
-    if (mpAtlas->isImuInitialized() && (mCurrentFrame.mnId>mnLastRelocFrameId+mnFramesToResetIMU))
-    {
-        // Predict state with IMU if it is initialized and it doesnt need reset
-        PredictStateIMU();
-        return true;
-    }
-    else
-    {
-        mCurrentFrame.SetPose(mVelocity * mLastFrame.GetPose());
-    }
-
-    fill(mCurrentFrame.mvpMapPoints.begin(),mCurrentFrame.mvpMapPoints.end(),static_cast<MapPoint*>(NULL));
-
-    // Project points seen in previous frame
-    int th;
-
-    if(mSensor==System::STEREO)
-        th=7;
-    else
-        th=15;
-
-    int nmatches = matcher.SearchByProjection(mCurrentFrame,mLastFrame,th,mSensor==System::MONOCULAR || mSensor==System::IMU_MONOCULAR);
-
-    // If few matches, uses a wider window search
-    if(nmatches<20)
-    {
-        Verbose::PrintMess("Not enough matches, wider window search!!", Verbose::VERBOSITY_NORMAL);
-        fill(mCurrentFrame.mvpMapPoints.begin(),mCurrentFrame.mvpMapPoints.end(),static_cast<MapPoint*>(NULL));
-
-        nmatches = matcher.SearchByProjection(mCurrentFrame,mLastFrame,2*th,mSensor==System::MONOCULAR || mSensor==System::IMU_MONOCULAR);
-        Verbose::PrintMess("Matches with wider search: " + to_string(nmatches), Verbose::VERBOSITY_NORMAL);
-
-    }
-
-    if(nmatches<20)
-    {
-        Verbose::PrintMess("Not enough matches!!", Verbose::VERBOSITY_NORMAL);
-        if (mSensor == System::IMU_MONOCULAR || mSensor == System::IMU_STEREO || mSensor == System::IMU_RGBD)
-            return true;
-        else
-            return false;
-    }
-
-    // Optimize frame pose with all matches
-    Optimizer::PoseOptimizationUW(&mCurrentFrame);
-
-
-    // Discard outliers
-    int nmatchesMap = 0;
-    for(int i =0; i<mCurrentFrame.N; i++)
-    {
-        if(mCurrentFrame.mvpMapPoints[i])
-        {
-            if(mCurrentFrame.mvbOutlier[i])
-            {
-                MapPoint* pMP = mCurrentFrame.mvpMapPoints[i];
-
-                mCurrentFrame.mvpMapPoints[i]=static_cast<MapPoint*>(NULL);
-                mCurrentFrame.mvbOutlier[i]=false;
-                if(i < mCurrentFrame.Nleft){
-                    pMP->mbTrackInView = false;
-                }
-                else{
-                    pMP->mbTrackInViewR = false;
-                }
-                pMP->mnLastFrameSeen = mCurrentFrame.mnId;
-                nmatches--;
-            }
-            else if(mCurrentFrame.mvpMapPoints[i]->Observations()>0)
-                nmatchesMap++;
-        }
-    }
-
-    if(mbOnlyTracking)
-    {
-        mbVO = nmatchesMap<10;
-        return nmatches>20;
-    }
-
-    if (mSensor == System::IMU_MONOCULAR || mSensor == System::IMU_STEREO || mSensor == System::IMU_RGBD)
-        return true;
-    else
-        return nmatchesMap>=10;
-}
-
-bool Tracking::TrackLocalMapUW()
-{
-
-    // We have an estimation of the camera pose and some map points tracked in the frame.
-    // We retrieve the local map and try to find matches to points in the local map.
-    mTrackedFr++;
-
-    UpdateLocalMap();
-    SearchLocalPoints();
-
-    // TOO check outliers before PO
-    int aux1 = 0, aux2=0;
-    for(int i=0; i<mCurrentFrame.N; i++)
-        if( mCurrentFrame.mvpMapPoints[i])
-        {
-            aux1++;
-            if(mCurrentFrame.mvbOutlier[i])
-                aux2++;
-        }
-
-    int inliers;
-    if (!mpAtlas->isImuInitialized())
-        Optimizer::PoseOptimizationUW(&mCurrentFrame);
-    else
-    {
-        if(mCurrentFrame.mnId<=mnLastRelocFrameId+mnFramesToResetIMU)
-        {
-            Verbose::PrintMess("TLM: PoseOptimization ", Verbose::VERBOSITY_DEBUG);
-            Optimizer::PoseOptimizationUW(&mCurrentFrame);
-        }
-        else
-        {
-            // if(!mbMapUpdated && mState == OK) //  && (mnMatchesInliers>30))
-            if(!mbMapUpdated) //  && (mnMatchesInliers>30))
-            {
-                Verbose::PrintMess("TLM: PoseInertialOptimizationLastFrame ", Verbose::VERBOSITY_DEBUG);
-                inliers = Optimizer::PoseInertialOptimizationLastFrame(&mCurrentFrame); // , !mpLastKeyFrame->GetMap()->GetIniertialBA1());
-            }
-            else
-            {
-                Verbose::PrintMess("TLM: PoseInertialOptimizationLastKeyFrame ", Verbose::VERBOSITY_DEBUG);
-                inliers = Optimizer::PoseInertialOptimizationLastKeyFrame(&mCurrentFrame); // , !mpLastKeyFrame->GetMap()->GetIniertialBA1());
-            }
-        }
-    }
-
-    aux1 = 0, aux2 = 0;
-    for(int i=0; i<mCurrentFrame.N; i++)
-        if( mCurrentFrame.mvpMapPoints[i])
-        {
-            aux1++;
-            if(mCurrentFrame.mvbOutlier[i])
-                aux2++;
-        }
-
-    mnMatchesInliers = 0;
-
-    // Update MapPoints Statistics
-    for(int i=0; i<mCurrentFrame.N; i++)
-    {
-        if(mCurrentFrame.mvpMapPoints[i])
-        {
-            if(!mCurrentFrame.mvbOutlier[i])
-            {
-                mCurrentFrame.mvpMapPoints[i]->IncreaseFound();
-                if(!mbOnlyTracking)
-                {
-                    if(mCurrentFrame.mvpMapPoints[i]->Observations()>0)
-                        mnMatchesInliers++;
-                }
-                else
-                    mnMatchesInliers++;
-            }
-            else if(mSensor==System::STEREO)
-                mCurrentFrame.mvpMapPoints[i] = static_cast<MapPoint*>(NULL);
-        }
-    }
-
-    // Decide if the tracking was succesful
-    // More restrictive if there was a relocalization recently
-    mpLocalMapper->mnMatchesInliers=mnMatchesInliers;
-    if(mCurrentFrame.mnId<mnLastRelocFrameId+mMaxFrames && mnMatchesInliers<50)
-        return false;
-
-    if((mnMatchesInliers>10)&&(mState==RECENTLY_LOST))
-        return true;
-
-
-    if (mSensor == System::IMU_MONOCULAR)
-    {
-        if((mnMatchesInliers<15 && mpAtlas->isImuInitialized())||(mnMatchesInliers<50 && !mpAtlas->isImuInitialized()))
-        {
-            return false;
-        }
-        else
-            return true;
-    }
-    else if (mSensor == System::IMU_STEREO || mSensor == System::IMU_RGBD)
-    {
-        if(mnMatchesInliers<15)
-        {
-            return false;
-        }
-        else
-            return true;
-    }
-    else
-    {
-        if(mnMatchesInliers<30)
-            return false;
-        else
-            return true;
     }
 }
 
@@ -571,8 +298,6 @@ Tracking::Tracking(System *pSys, ORBVocabulary* pVoc, FrameDrawer *pFrameDrawer,
     initID = 0; lastID = 0;
     mbInitWith3KFs = false;
     mnNumDataset = 0;
-
-    // TODO: add parameters (CLAHE) to settings
 
     vector<GeometricCamera*> vpCams = mpAtlas->GetAllCameras();
     std::cout << "There are " << vpCams.size() << " cameras in the atlas" << std::endl;
@@ -2611,13 +2336,8 @@ void Tracking::Track()
         if(!mbOnlyTracking)
         {
             if(bOK)
-            {
-                if(mbIsUW)  // UW
-                    bOK = TrackLocalMapUW();
-                else
-                    bOK = TrackLocalMap();
-
-            }
+                bOK = TrackLocalMap();
+                
             if(!bOK)
                 cout << "Fail to track local map!" << endl;
         }
