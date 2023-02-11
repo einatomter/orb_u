@@ -150,19 +150,18 @@ namespace ORB_SLAM3 {
     {
         bool found;
 
-        bool bUsePressure_ = (bool) readParameter<int>(fSettings, "DSensor.UsePressure", found, false);
+        bUsePressure_ = (bool) readParameter<int>(fSettings, "DSensor.UsePressure", found, false);
 
         if (!found)
-        {
             bUsePressure_ = false;
-        }
 
         float depthX = readParameter<float>(fSettings, "DSensor.CameraDepthAxis.x", found);
         float depthY = readParameter<float>(fSettings, "DSensor.CameraDepthAxis.y", found);
         float depthZ = readParameter<float>(fSettings, "DSensor.CameraDepthAxis.z", found);
 
         // TODO: use new keyword?
-        depthAxis_ = Eigen::Vector3d(depthX, depthY, depthZ);
+        // Multiplying with -1 because ORB-SLAM inverts estimated translation vector
+        depthAxis_ = -Eigen::Vector3d(depthX, depthY, depthZ);
         depthAxis_.normalize();
         
     }
@@ -223,7 +222,7 @@ namespace ORB_SLAM3 {
         if (bIsUW)
         {
             readDepthSensor(fSettings);
-            cout << "\t-Loaded depth sensor settings" << endl;
+            cout << "\t-Loaded depth sensor settings " << endl;
         }
 
         readORB(fSettings);
@@ -721,7 +720,7 @@ namespace ORB_SLAM3 {
         {
             std::cout << "Depth sensor parameters:" << std::endl;
             std::cout << "\t-Use pressure readings: " << settings.bUsePressure_ << std::endl;
-            std::cout << "\t-Depth axis: " << settings.depthAxis_ << std::endl;
+            std::cout << "\t-Depth axis: [ " << settings.depthAxis_.transpose() << " ]" << std::endl;
         }
 
         return output;
