@@ -95,7 +95,7 @@ void LocalMapping::InitializeScaleUW()
             if(pKFi->isBad() || pKFi->mPrevKF->mnId>maxKFid)
                 continue;
 
-            Eigen::Vector3d translationEstimate = -pKFi->GetPose().translation().cast<double>();
+            Eigen::Vector3d translationEstimate = pKFi->GetPose().translation().cast<double>();
             double depthEstimate = translationEstimate.transpose() * mdepthAxis;
             float depthMeasured = pKFi->mPressureMeas.relativeDepthHeight();
             
@@ -288,7 +288,7 @@ void LocalMapping::Run()
                             mTinit += mpCurrentKeyFrame->mTimeStamp - mpCurrentKeyFrame->mPrevKF->mTimeStamp;
                         if(!mpCurrentKeyFrame->GetMap()->GetIniertialBA2())
                         {
-                            if((mTinit<10.f) && (dist<0.005))
+                            if((mTinit<10.f) && (dist<0.005))   // TODO: make distance yaml parameter to more easily change value
                             {
                                 cout << "Not enough motion for initializing. Reseting..." << endl;
                                 unique_lock<mutex> lock(mMutexReset);
@@ -304,7 +304,10 @@ void LocalMapping::Run()
                     }
                     else
                     {
-                        Optimizer::LocalBundleAdjustment(mpCurrentKeyFrame,&mbAbortBA, mpCurrentKeyFrame->GetMap(),num_FixedKF_BA,num_OptKF_BA,num_MPs_BA,num_edges_BA);
+                        if (mpAtlas->GetCurrentMap()->isScaleUWInitialized() && mbIsUW) // UW
+                            Optimizer::LocalBundleAdjustment(mpCurrentKeyFrame,&mbAbortBA, mpCurrentKeyFrame->GetMap(),num_FixedKF_BA,num_OptKF_BA,num_MPs_BA,num_edges_BA, true);
+                        else
+                            Optimizer::LocalBundleAdjustment(mpCurrentKeyFrame,&mbAbortBA, mpCurrentKeyFrame->GetMap(),num_FixedKF_BA,num_OptKF_BA,num_MPs_BA,num_edges_BA);
                         b_doneLBA = true;
                     }
 
