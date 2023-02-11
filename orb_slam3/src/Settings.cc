@@ -146,6 +146,27 @@ namespace ORB_SLAM3 {
         claheGridHeight_ = readParameter<int>(fSettings, "CLAHE.GridHeight", found);
     }
 
+    void Settings::readDepthSensor(cv::FileStorage& fSettings)
+    {
+        bool found;
+
+        bool bUsePressure_ = (bool) readParameter<int>(fSettings, "DSensor.UsePressure", found, false);
+
+        if (!found)
+        {
+            bUsePressure_ = false;
+        }
+
+        float depthX = readParameter<float>(fSettings, "DSensor.CameraDepthAxis.x", found);
+        float depthY = readParameter<float>(fSettings, "DSensor.CameraDepthAxis.y", found);
+        float depthZ = readParameter<float>(fSettings, "DSensor.CameraDepthAxis.z", found);
+
+        // TODO: use new keyword?
+        depthAxis_ = Eigen::Vector3d(depthX, depthY, depthZ);
+        depthAxis_.normalize();
+        
+    }
+
 // -------------------------------------------------------------------------------------------
 // UW END
 // -------------------------------------------------------------------------------------------
@@ -153,7 +174,9 @@ namespace ORB_SLAM3 {
 
 
     Settings::Settings(const std::string &configFile, const int& sensor, const bool& isUW) :
-    bNeedToUndistort_(false), bNeedToRectify_(false), bNeedToResize1_(false), bNeedToResize2_(false){
+    bNeedToUndistort_(false), bNeedToRectify_(false), bNeedToResize1_(false), bNeedToResize2_(false),
+    bIsUW(isUW) 
+    {
         sensor_ = sensor;
 
         //Open settings file
@@ -193,15 +216,15 @@ namespace ORB_SLAM3 {
         }
 
         // UW parameters
-        // if (isUW)
-        // {
         readClahe(fSettings);
+        if (bUseClahe_)
+            cout << "\t-Loaded CLAHE settings" << endl;
 
-        if (!bUseClahe_)
-            cout << "\tUnderwater mode enabled but no CLAHE or depth parameters specified" << endl;
-        else
-            cout << "\t-Loaded underwater settings" << endl;
-        // }
+        if (bIsUW)
+        {
+            readDepthSensor(fSettings);
+            cout << "\t-Loaded depth sensor settings" << endl;
+        }
 
         readORB(fSettings);
         cout << "\t-Loaded ORB settings" << endl;
@@ -692,6 +715,13 @@ namespace ORB_SLAM3 {
             std::cout << "\t-Clip limit: " << settings.claheClipLimit_ << std::endl;
             std::cout << "\t-Grid width: " << settings.claheGridWidth_ << std::endl;
             std::cout << "\t-Grid height: " << settings.claheGridHeight_ << std::endl;
+        }
+
+        if (settings.bIsUW)
+        {
+            std::cout << "Depth sensor parameters:" << std::endl;
+            std::cout << "\t-Use pressure readings: " << settings.bUsePressure_ << std::endl;
+            std::cout << "\t-Depth axis: " << settings.depthAxis_ << std::endl;
         }
 
         return output;

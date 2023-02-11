@@ -94,17 +94,21 @@ void LocalMapping::InitializeScaleUW()
             // do not include bad keyframes
             if(pKFi->isBad() || pKFi->mPrevKF->mnId>maxKFid)
                 continue;
+
+            Eigen::Vector3d translationEstimate = -pKFi->GetPose().translation().cast<double>();
+            double depthEstimate = translationEstimate.transpose() * mdepthAxis;
+            float depthMeasured = pKFi->mPressureMeas.relativeDepthHeight();
             
             // do not include keyframe if estimate is too low (too sensitive to noise)
-            if(fabs(pKFi->GetPose().translation()(1)) < 1e-1)
+            if(fabs(depthEstimate) < 1e-1)
                 continue;
 
-            sumMeasured += fabs(pKFi->mPressureMeas.relativeDepthHeight());
-            sumEstimate += fabs(pKFi->GetPose().translation()(1));
+            sumMeasured += fabs(depthMeasured);
+            sumEstimate += fabs(depthEstimate);
 
-            double scale = pKFi->mPressureMeas.relativeDepthHeight()/pKFi->GetPose().translation()(1);
+            double scale = depthMeasured/depthEstimate;
             // std::cout << "depth over pose: " << scale << std::endl;
-
+            
             // negative values are often an issue of bias instead of inverted scale
             // and is therefore not included in calculations
             if(scale <= 0)

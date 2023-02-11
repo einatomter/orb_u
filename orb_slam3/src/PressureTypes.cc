@@ -7,6 +7,7 @@
 
 namespace UW
 {
+
 Point::Point():
     pressure(PRESSURE_SEA_LEVEL)
 {
@@ -14,21 +15,35 @@ Point::Point():
     initDepth = depth;
 }
 
-
 // Copy Constructor
 Point::Point(const Point &point):
-    pressure(point.pressure), initDepth(point.initDepth), depth(point.depth)
+    pressure(point.pressure), 
+    initDepth(point.initDepth), 
+    depth(point.depth), 
+    depthAxis(point.depthAxis)
 {}
-Point::Point(const float &pressureReading)
-{
-    pressure = pressureReading;
-    depth = pressureToDepth(pressure);
 
+Point::Point(const float &inputValue, const Eigen::Vector3d &inputDepthAxis, const bool &usePressure)
+{
+    if (usePressure)
+    {
+        pressure = inputValue;
+        depth = pressureToDepth(pressure);
+
+    }
+    else
+    {
+        depth = inputValue;
+        // TODO: either do pressure calculation or remove pressure variable
+        pressure = -1;
+    }
+
+    depthAxis = inputDepthAxis;
 }
 
 float Point::pressureToDepth(float fluidPressure)
 {
-    return -(fluidPressure - PRESSURE_SEA_LEVEL)*1000 / (FLUID_DENSITY * GRAVITY_VALUE);
+    return (fluidPressure - PRESSURE_SEA_LEVEL)*1000 / (FLUID_DENSITY * GRAVITY_VALUE);
 }
 
 float Point::relativeDepthHeight()

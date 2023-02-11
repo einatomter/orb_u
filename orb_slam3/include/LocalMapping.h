@@ -45,11 +45,12 @@ public:
     void InitializeScaleUW();
     bool mbIsUW;
 
-
     int mScaleOKCount;  // counter for scale OK
 
     const int mScaleOKThreshold;    // count threshold before scale is considered initailized
     const float mScaleMargin;       // tolerance for scale to be considered OK
+    
+    Eigen::Vector3d mdepthAxis;
 // UW end
 public:
     EIGEN_MAKE_ALIGNED_OPERATOR_NEW

@@ -42,7 +42,7 @@ Verbose::eLevel Verbose::th = Verbose::VERBOSITY_NORMAL;
 // UW
 // -------------------------------------------------------------------------------------------
 
-Sophus::SE3f System::TrackMonoUW(const cv::Mat &im, const double &timestamp, const float &pressure, const vector<IMU::Point>& vImuMeas, string filename)
+Sophus::SE3f System::TrackMonoUW(const cv::Mat &im, const double &timestamp, const float &depthVal, const vector<IMU::Point>& vImuMeas, string filename)
 {
 
     {
@@ -110,7 +110,7 @@ Sophus::SE3f System::TrackMonoUW(const cv::Mat &im, const double &timestamp, con
             mpTracker->GrabImuData(vImuMeas[i_imu]);
 
     // create pressure object
-    UW::Point pressureMeas(pressure);
+    UW::Point pressureMeas(depthVal, settings_->depthAxis(), settings_->bUsePressure());
 
     Sophus::SE3f Tcw = mpTracker->GrabImageMonoUW(imToFeed, pressureMeas, timestamp, filename);
 
@@ -277,7 +277,10 @@ System::System(const string &strVocFile, const string &strSettingsFile, const eS
     mptLocalMapping = new thread(&ORB_SLAM3::LocalMapping::Run,mpLocalMapper);
     mpLocalMapper->mInitFr = initFr;
     if(settings_)
+    {
         mpLocalMapper->mThFarPoints = settings_->thFarPoints();
+        mpLocalMapper->mdepthAxis = settings_->depthAxis();
+    }
     else
         mpLocalMapper->mThFarPoints = fsSettings["thFarPoints"];
     if(mpLocalMapper->mThFarPoints!=0)

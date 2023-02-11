@@ -32,10 +32,6 @@
 
 #include <Eigen/Core>
 #include <Eigen/Geometry>
-#include <Eigen/Dense>
-
-#include <sophus/se3.hpp>
-#include <mutex>
 
 namespace UW
 {
@@ -51,15 +47,23 @@ const float SENSOR_NOISE = 3.0;
 // calculated depth noise based on sensor noise (m)
 const float DEPTH_NOISE = SENSOR_NOISE * 1000 / (FLUID_DENSITY * GRAVITY_VALUE);
 
+// TODO: use vector3d (double) instead?
+const Eigen::Vector3d defaultDepthAxis(0, 1, 0);
+
+
+// enum eInputType{
+//     DEPTH,
+//     PRESSURE
+// };
+
 // object for containing pressure and depth values
 class Point
 {
 public:
-
     Point();
     // Copy Constructor
     Point(const Point &point);
-    Point(const float &pressureReading);
+    Point(const float &inputValue, const Eigen::Vector3d &inputDepthAxis = defaultDepthAxis, const bool &usePressure = false);
 
     // converts pressure value (kPa) to depth value (m)
     // direction is also switched (up-positive down-negative)
@@ -73,12 +77,16 @@ public:
     // raw measurement reading (kPa)
     // up-negative down-positive
     float pressure = 0;
+
     // initial depth upon SLAM initialization (m)
-    // up-positive down-negative
+    // up-negative down-positive
     float initDepth = 0;
+
     // current depth (m)
-    // up-positive down-negative
+    // up-negative down-positive
     float depth = 0;
+
+    Eigen::Vector3d depthAxis;
 
 private:
     // UNUSED
@@ -111,12 +119,18 @@ public:
     EIGEN_MAKE_ALIGNED_OPERATOR_NEW
     EdgeDepth2(){}
 
+    // Set camera orientation relative to depth axis
+    void setDepthAxis(Eigen::Vector3d& input){
+        _depthAxis = input;
+    }
+
     void computeError(){
         const g2o::VertexSE3Expmap* VPose = static_cast<const g2o::VertexSE3Expmap*>(_vertices[0]);
-        // fetching y-component of translation vector from pose
-        const Eigen::Matrix<double, 1, 1> est(VPose->estimate().translation()(1));
+        // VPose->estimate().rotation().toRotationMatrix();
+        Eigen::Vector3d translation(VPose->estimate().translation());
+        const Eigen::Matrix<double, 1, 1> est(translation.transpose() * _depthAxis);
         const Eigen::Matrix<double, 1, 1> obs(_measurement);
-        _error = (obs - est);
+        _error = (obs - est); 
     }
 
     // redefined to 1D definition ((x-mu)^2/sigma^2)
@@ -128,6 +142,9 @@ public:
 
     virtual bool read(std::istream& is){return false;}
     virtual bool write(std::ostream& os) const{return false;}
+
+private:
+    Eigen::Vector3d _depthAxis;
 };
 
 class VertexScale: public g2o::BaseVertex<1, double>

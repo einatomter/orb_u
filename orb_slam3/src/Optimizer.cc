@@ -74,6 +74,7 @@ int Optimizer::PoseOptimizationUW(Frame *pFrame)
     UW::EdgeDepth2* eDepth = new UW::EdgeDepth2;
     eDepth->setVertex(0, dynamic_cast<g2o::OptimizableGraph::Vertex*>(optimizer.vertex(0)));
     eDepth->setMeasurement(pFrame->mPressureMeas.relativeDepthHeight());
+    eDepth->setDepthAxis(pFrame->mPressureMeas.depthAxis);
     Eigen::Matrix<double, 1, 1> depthNoise(UW::DEPTH_NOISE);
     eDepth->setInformation(depthNoise.inverse());
     optimizer.addEdge(eDepth);

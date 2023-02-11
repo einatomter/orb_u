@@ -38,22 +38,31 @@ namespace ORB_SLAM3 {
 
     class Settings {
 // UW
-    public:      
+    public:
+        // Getter methods
         bool bUseClahe() {return bUseClahe_;}
         float claheClipLimit() {return claheClipLimit_;}
         int claheGridWidth() {return claheGridWidth_;}
         int claheGridHeight() {return claheGridHeight_;}
 
+        bool bUsePressure() {return bUsePressure_;}
+        Eigen::Vector3d depthAxis() {return depthAxis_;}
+
+        bool bIsUW;
     private:
         // CLAHE
         void readClahe(cv::FileStorage& fSettings);
+        void readDepthSensor(cv::FileStorage& fSettings);
 
         bool bUseClahe_;
         float claheClipLimit_;
         int claheGridWidth_;
         int claheGridHeight_;
 
-        // Pressure sensor orientation
+        // Depth sensor
+        bool bUsePressure_;
+        Eigen::Vector3d depthAxis_;
+
 
 // UW END
     public:

@@ -90,7 +90,7 @@ public:
     // Input images: RGB (CV_8UC3) or grayscale (CV_8U). RGB is converted to grayscale.
     // Input pressure: Float value of pressure reading.
     // Returns the camera pose (empty if tracking fails).
-    Sophus::SE3f TrackMonoUW(const cv::Mat &im, const double &timestamp, const float &pressure, const vector<IMU::Point>& vImuMeas = vector<IMU::Point>(), string filename="");
+    Sophus::SE3f TrackMonoUW(const cv::Mat &im, const double &timestamp, const float &depthVal, const vector<IMU::Point>& vImuMeas = vector<IMU::Point>(), string filename="");
     bool mbIsUW;
 
 // UW END
