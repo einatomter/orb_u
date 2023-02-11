@@ -17,13 +17,19 @@
 #--------------------------------------------------------------------------------------------
 
 # CLAHE
-CLAHE.Enable: 1
-CLAHE.ClipLimit:  3.0 #3 - 4 ish
-CLAHE.GridWidth:  4 # 4 - 20, heavy diminishing returns after 10 ish
-CLAHE.GridHeight: 4 # 4 - 20, heavy diminishing returns after 10 ish
+CLAHE.Enable: 1         # CLAHE parameters will be ignored if this is disabled
+CLAHE.ClipLimit:  3.0   # kinda reliant on dataset
+CLAHE.GridWidth:  4     # 4 - 20, heavy diminishing returns after 10 ish
+CLAHE.GridHeight: 4     # 4 - 20, heavy diminishing returns after 10 ish
 
-# Pressure sensor noise
-# Pressure sensor orientation
+# Depth sensor Parameters.
+DSensor.UsePressure: 0  # default 0
+
+# Camera depth axis
+# Axis is normalized within ORB-SLAM if not in normalized form
+DSensor.CameraDepthAxis.x: 0.0
+DSensor.CameraDepthAxis.y: 1.0
+DSensor.CameraDepthAxis.z: 0.0
 
 #--------------------------------------------------------------------------------------------
 # Camera Parameters. Adjust them!

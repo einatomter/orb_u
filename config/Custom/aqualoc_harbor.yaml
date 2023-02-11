@@ -13,15 +13,23 @@
 #System.SaveAtlasToFile: "Session_MH01_MH02_MH03_Mono"
 
 #--------------------------------------------------------------------------------------------
-# Custom Parameters
+# UW Parameters
 #--------------------------------------------------------------------------------------------
 
 # CLAHE
-# clip_limit: 3 #3 - 4 ish
-# grid_size: 4 # 4 - 20, heavy diminishing returns after 10 ish
+CLAHE.Enable: 1         # CLAHE parameters will be ignored if this is disabled
+CLAHE.ClipLimit:  10.0   # 3 - 10
+CLAHE.GridWidth:  4     # 4 - 20, heavy diminishing returns after 10 ish
+CLAHE.GridHeight: 4     # 4 - 20, heavy diminishing returns after 10 ish
 
-# Pressure sensor noise
-# something
+# Depth sensor Parameters.
+DSensor.UsePressure: 0  # default 0
+
+# Camera depth axis
+# Axis is normalized within ORB-SLAM if not in normalized form
+DSensor.CameraDepthAxis.x: 1.0
+DSensor.CameraDepthAxis.y: 0.0
+DSensor.CameraDepthAxis.z: 0.0
 
 #--------------------------------------------------------------------------------------------
 # Camera Parameters. Adjust them!
