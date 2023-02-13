@@ -42,7 +42,9 @@ class LocalMapping
 {
 // UW
 public:
-    void InitializeScaleUW();
+    bool CalculateScaleUW(double &scale);
+    void InitializeScaleUW();  // Unused in favor of an optimization-based algorithm
+
     bool mbIsUW;
 
     int mScaleOKCount;  // counter for scale OK

@@ -45,6 +45,10 @@ class LoopClosing;
 
 class Optimizer
 {
+// UW
+public:
+    void static ScaleOptimizationUW(Map *pMap, double &scale);
+// UW END
 public:
 
     void static BundleAdjustment(const std::vector<KeyFrame*> &vpKF, const std::vector<MapPoint*> &vpMP,

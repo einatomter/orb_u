@@ -34,48 +34,8 @@ namespace ORB_SLAM3
 // UW
 // -------------------------------------------------------------------------------------------
 
-void LocalMapping::InitializeScaleUW()
+bool LocalMapping::CalculateScaleUW(double &scale)
 {
-    if (mbResetRequested)
-        return;
-
-    float minTime = 2.0;
-    int nMinKF = 5;
-
-    if(mpAtlas->KeyFramesInMap()<nMinKF)
-        return;
-
-    // Retrieve all keyframe in temporal order
-    list<KeyFrame*> lpKF;
-    KeyFrame* pKF = mpCurrentKeyFrame;
-    while(pKF->mPrevKF)
-    {
-        lpKF.push_front(pKF);
-        pKF = pKF->mPrevKF;
-    }
-    lpKF.push_front(pKF);
-    vector<KeyFrame*> vpKF(lpKF.begin(),lpKF.end());
-
-    if(vpKF.size()<nMinKF)
-        return;
-
-    mFirstTs=vpKF.front()->mTimeStamp;
-    if(mpCurrentKeyFrame->mTimeStamp-mFirstTs<minTime)
-        return;
-
-    bInitializing = true;
-
-    while(CheckNewKeyFrames())
-    {
-        ProcessNewKeyFrame();
-        vpKF.push_back(mpCurrentKeyFrame);
-        lpKF.push_back(mpCurrentKeyFrame);
-    }
-
-    // mScale=1.0;
-
-    // Optimizer::ScaleOptimizationP(mpAtlas->GetCurrentMap(), mScale);
-
     Map *pMap = mpAtlas->GetCurrentMap();
     long unsigned int maxKFid = pMap->GetMaxKFid();
     const vector<KeyFrame*> vpKFs = pMap->GetAllKeyFrames();
@@ -83,7 +43,8 @@ void LocalMapping::InitializeScaleUW()
     double sumEstimate = 0;
     double sumMeasured = 0;
 
-    double sumScale = 0;
+    double sumScale = 0; // alternative scale calculation
+
     int count = 0;
     for(size_t i=0;i<vpKFs.size();i++)
     {
@@ -99,33 +60,29 @@ void LocalMapping::InitializeScaleUW()
             double depthEstimate = translationEstimate.transpose() * mdepthAxis;
             float depthMeasured = pKFi->mPressureMeas.relativeDepthHeight();
             
-            // do not include keyframe if estimate is too low (too sensitive to noise)
-            if(fabs(depthEstimate) < 1e-1)
+            if(fabs(depthEstimate) < 1e-1)  // low value estimates are too sensitive to noise
                 continue;
 
             sumMeasured += fabs(depthMeasured);
             sumEstimate += fabs(depthEstimate);
 
-            double scale = depthMeasured/depthEstimate;
+            double ratio = depthMeasured/depthEstimate;
             // std::cout << "depth over pose: " << scale << std::endl;
             
-            // negative values are often an issue of bias instead of inverted scale
-            // and is therefore not included in calculations
-            if(scale <= 0)
+            if(ratio <= 0)  // Ignore if ratio is negative
                 continue;
-            sumScale += scale;
+            sumScale += ratio;
             count++;
         }
     }
 
     // TODO: check standard deviation for spurious values
 
-    // if too few valid scale measurements
     if(count < 3)
     {
         // cout << "too few scale measurements" << endl;
         bInitializing=false;
-        return;
+        return false;
     }
 
     mScale = sumScale/count;
@@ -138,6 +95,35 @@ void LocalMapping::InitializeScaleUW()
         mScale = 2;
     }
 
+    return true;
+}
+
+void LocalMapping::InitializeScaleUW()
+{
+    if (mbResetRequested)
+        return;
+
+    int nMinKF = 5;
+
+    if(mpAtlas->KeyFramesInMap()<nMinKF)
+        return;
+
+    bInitializing = true;
+
+    while(CheckNewKeyFrames())
+        ProcessNewKeyFrame();
+
+    // Initialize scale (old)
+    // bool initOK = CalculateScaleUW(mScale);
+    // if (!initOK)
+    // {
+    //     bInitializing = false;
+    //     return;
+    // }
+
+    // Initialize scale
+    Optimizer::ScaleOptimizationUW(mpAtlas->GetCurrentMap(), mScale);
+    
     if(mScale < 1e-1) // 1e-1
     {
         cout << "scale too small" << endl;
@@ -145,7 +131,6 @@ void LocalMapping::InitializeScaleUW()
         return;
     }
 
-    
     // Before this line we are not changing the map
     unique_lock<mutex> lock(mpAtlas->GetCurrentMap()->mMutexMapUpdate);
     if ((fabs(mScale-1.f)>0.002))
@@ -167,6 +152,10 @@ void LocalMapping::InitializeScaleUW()
         cout << "Scale UW initialized successfully" << endl;
         mpAtlas->GetCurrentMap()->setScaleUWInitialized();
         mScaleOKCount = 0;
+
+        cout << "Performing global BA" << endl;
+        Optimizer::GlobalBundleAdjustemnt(mpAtlas->GetCurrentMap(), 10, NULL, mpCurrentKeyFrame->mnId, true, true);
+        cout << "Global BA end" << endl;
     }
 
     bInitializing = false;

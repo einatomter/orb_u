@@ -45,6 +45,96 @@
 namespace ORB_SLAM3
 {
 
+// -------------------------------------------------------------------------------------------
+// UW
+// -------------------------------------------------------------------------------------------
+
+void Optimizer::ScaleOptimizationUW(Map *pMap, double &scale)
+{
+    int its = 10;
+    long unsigned int maxKFid = pMap->GetMaxKFid();
+    const vector<KeyFrame*> vpKFs = pMap->GetAllKeyFrames();
+
+    // Setup optimizer
+    g2o::SparseOptimizer optimizer;
+    g2o::BlockSolverX::LinearSolverType * linearSolver;
+
+    linearSolver = new g2o::LinearSolverEigen<g2o::BlockSolverX::PoseMatrixType>();
+
+    g2o::BlockSolverX * solver_ptr = new g2o::BlockSolverX(linearSolver);
+
+    g2o::OptimizationAlgorithmLevenberg* solver = new g2o::OptimizationAlgorithmLevenberg(solver_ptr);
+    optimizer.setAlgorithm(solver);
+
+    // Set Pose vertices as fixed
+    for(size_t i=0; i<vpKFs.size(); i++)
+    {
+        KeyFrame* pKF = vpKFs[i];
+        if(pKF->isBad())
+            continue;
+        g2o::VertexSE3Expmap * vSE3 = new g2o::VertexSE3Expmap();
+        Sophus::SE3<float> Tcw = pKF->GetPose();
+        vSE3->setEstimate(g2o::SE3Quat(Tcw.unit_quaternion().cast<double>(),Tcw.translation().cast<double>()));
+        vSE3->setId(pKF->mnId);
+        vSE3->setFixed(true);
+        optimizer.addVertex(vSE3);
+        if(pKF->mnId>maxKFid)
+            maxKFid=pKF->mnId;
+    }
+
+    // Set scale vertex
+    UW::VertexScale* VS = new UW::VertexScale(scale);
+    VS->setId(maxKFid + 1);
+    VS->setFixed(false);
+    optimizer.addVertex(VS);
+
+    const float deltaHuber = 1;
+
+    // Set edges
+    for(size_t i=0; i<vpKFs.size(); i++)
+    {
+        KeyFrame* pKF = vpKFs[i];
+
+        if(pKF->isBad())
+            continue;
+
+        // Set Depth edge
+        UW::EdgeScale* e = new UW::EdgeScale;
+
+        e->setVertex(0, dynamic_cast<g2o::OptimizableGraph::Vertex*>(optimizer.vertex(pKF->mnId)));
+        e->setVertex(1, dynamic_cast<g2o::OptimizableGraph::Vertex*>(optimizer.vertex(maxKFid + 1)));
+
+        e->setMeasurement(pKF->mPressureMeas.relativeDepthHeight());
+        e->setDepthAxis(pKF->mPressureMeas.depthAxis);
+        Eigen::Matrix<double, 1, 1> depthNoise(UW::DEPTH_NOISE);
+        e->setInformation(depthNoise.inverse());
+
+        g2o::RobustKernelHuber* rk = new g2o::RobustKernelHuber;
+        e->setRobustKernel(rk);
+        rk->setDelta(deltaHuber);
+
+        optimizer.addEdge(e);
+    }
+
+
+    // Compute error for different scales
+    optimizer.setVerbose(false);
+    optimizer.initializeOptimization();
+    optimizer.computeActiveErrors();
+    // float err = optimizer.activeRobustChi2();
+    optimizer.optimize(its);
+    optimizer.computeActiveErrors();
+    // float err_end = optimizer.activeRobustChi2();
+    // Recover optimized data
+    scale = VS->estimate();
+
+}
+
+// -------------------------------------------------------------------------------------------
+// UW END
+// -------------------------------------------------------------------------------------------
+
+
 bool sortByVal(const pair<MapPoint*, int> &a, const pair<MapPoint*, int> &b)
 {
     return (a.second < b.second);
@@ -125,6 +215,20 @@ void Optimizer::BundleAdjustment(const vector<KeyFrame *> &vpKFs, const vector<M
         vSE3->setId(pKF->mnId);
         vSE3->setFixed(pKF->mnId==pMap->GetInitKFid());
         optimizer.addVertex(vSE3);
+
+        // UW
+        if (isUW)
+        {
+            // Set Depth edge connected to pose
+            UW::EdgeDepth2* eDepth = new UW::EdgeDepth2;
+            eDepth->setVertex(0, dynamic_cast<g2o::OptimizableGraph::Vertex*>(optimizer.vertex(pKF->mnId)));
+            eDepth->setMeasurement(pKF->mPressureMeas.relativeDepthHeight());
+            eDepth->setDepthAxis(pKF->mPressureMeas.depthAxis);
+            Eigen::Matrix<double, 1, 1> depthNoise(UW::DEPTH_NOISE);
+            eDepth->setInformation(depthNoise.inverse());
+            optimizer.addEdge(eDepth);
+        }
+
         if(pKF->mnId>maxKFid)
             maxKFid=pKF->mnId;
     }
@@ -157,19 +261,6 @@ void Optimizer::BundleAdjustment(const vector<KeyFrame *> &vpKFs, const vector<M
             if(optimizer.vertex(id) == NULL || optimizer.vertex(pKF->mnId) == NULL)
                 continue;
             nEdges++;
-
-            // UW
-            if (isUW)
-            {
-                // Set Depth edge connected to pose
-                UW::EdgeDepth2* eDepth = new UW::EdgeDepth2;
-                eDepth->setVertex(0, dynamic_cast<g2o::OptimizableGraph::Vertex*>(optimizer.vertex(pKF->mnId)));
-                eDepth->setMeasurement(pKF->mPressureMeas.relativeDepthHeight());
-                eDepth->setDepthAxis(pKF->mPressureMeas.depthAxis);
-                Eigen::Matrix<double, 1, 1> depthNoise(UW::DEPTH_NOISE);
-                eDepth->setInformation(depthNoise.inverse());
-                optimizer.addEdge(eDepth);
-            }
 
             const int leftIndex = get<0>(mit->second);
 
