@@ -49,7 +49,7 @@ namespace ORB_SLAM3
 // UW
 // -------------------------------------------------------------------------------------------
 
-void Optimizer::ScaleOptimizationUW(Map *pMap, double &scale)
+void Optimizer::ScaleOptimizationUW(Map *pMap, double &scale, bool bInertial)
 {
     int its = 10;
     long unsigned int maxKFid = pMap->GetMaxKFid();
@@ -83,10 +83,23 @@ void Optimizer::ScaleOptimizationUW(Map *pMap, double &scale)
     }
 
     // Set scale vertex
+    // TODO: maybe cast to its base class?
+    // if (bInertial)
+    // {
+    //     // IMU Vertex definition
+    //     VertexScale* VS = new VertexScale(scale);
+    //     VS->setId(maxKFid + 1);
+    //     VS->setFixed(false);
+    //     optimizer.addVertex(VS);
+    // }
+    // else
+    // {
+    // UW Vertex definition
     UW::VertexScale* VS = new UW::VertexScale(scale);
     VS->setId(maxKFid + 1);
     VS->setFixed(false);
     optimizer.addVertex(VS);
+    // }
 
     const float deltaHuber = 1;
 
@@ -125,9 +138,18 @@ void Optimizer::ScaleOptimizationUW(Map *pMap, double &scale)
     optimizer.optimize(its);
     optimizer.computeActiveErrors();
     // float err_end = optimizer.activeRobustChi2();
-    // Recover optimized data
-    scale = VS->estimate();
 
+    // Recover optimized data
+    // if (bInertial)
+    // {
+    //     VertexScale* VS = static_cast<VertexScale*>(optimizer.vertex(maxKFid + 1));
+    //     scale = VS->estimate();
+    // }
+    // else
+    // {
+    //     UW::VertexScale* VS = static_cast<UW::VertexScale*>(optimizer.vertex(maxKFid + 1));
+    scale = VS->estimate();
+    // }
 }
 
 // -------------------------------------------------------------------------------------------

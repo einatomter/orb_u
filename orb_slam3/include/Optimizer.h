@@ -47,7 +47,7 @@ class Optimizer
 {
 // UW
 public:
-    void static ScaleOptimizationUW(Map *pMap, double &scale);
+    void static ScaleOptimizationUW(Map *pMap, double &scale, bool bInertial = false);
 // UW END
 public:
 

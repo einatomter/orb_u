@@ -122,7 +122,7 @@ void LocalMapping::InitializeScaleUW()
     // }
 
     // Initialize scale
-    Optimizer::ScaleOptimizationUW(mpAtlas->GetCurrentMap(), mScale);
+    Optimizer::ScaleOptimizationUW(mpAtlas->GetCurrentMap(), mScale, mbInertial);
     
     if(mScale < 1e-1) // 1e-1
     {
@@ -321,22 +321,32 @@ void LocalMapping::Run()
                 }
 
 #endif
+                // Initialize pressure
+                if(!mpCurrentKeyFrame->GetMap()->isScaleUWInitialized() && mbIsUW)
+                {
+                    cout << "current pose: " << mpCurrentKeyFrame->GetPose().translation().transpose() << endl;
+                    InitializeScaleUW();
+                }
 
                 // Initialize IMU here
-                if(!mpCurrentKeyFrame->GetMap()->isImuInitialized() && mbInertial)
+                if(!mpCurrentKeyFrame->GetMap()->isImuInitialized() && mbInertial && !mbIsUW)
                 {
+                    std::cout << "This one is not supposed to run" << std::endl;
                     if (mbMonocular)
                         InitializeIMU(1e2, 1e10, true);
                     else
                         InitializeIMU(1e2, 1e5, true);
                 }
 
-                // Initialize pressure
-                if(!mpCurrentKeyFrame->GetMap()->isScaleUWInitialized() && mbIsUW)
+                if (!mpCurrentKeyFrame->GetMap()->isImuInitialized() && mbInertial && mbIsUW && mpCurrentKeyFrame->GetMap()->isScaleUWInitialized())
                 {
-                    InitializeScaleUW();
-                }
+                    std::cout << "Doing IMU init" << std::endl;
 
+                    if (mbMonocular)
+                        InitializeIMU(1e2, 1e10, true);
+                    else
+                        InitializeIMU(1e2, 1e5, true);
+                }
                 // Check redundant local Keyframes
                 KeyFrameCulling();
 
@@ -1375,6 +1385,7 @@ void LocalMapping::InitializeIMU(float priorG, float priorA, bool bFIBA)
     // Compute and KF velocities mRwg estimation
     if (!mpCurrentKeyFrame->GetMap()->isImuInitialized())
     {
+
         Eigen::Matrix3f Rwg;
         Eigen::Vector3f dirG;
         dirG.setZero();
