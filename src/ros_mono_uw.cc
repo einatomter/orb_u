@@ -8,10 +8,6 @@
 
 using namespace std;
 
-// ---------------------------------------
-// UW
-// ---------------------------------------
-
 class PressureGrabber
 {
 public:
@@ -19,58 +15,28 @@ public:
     void GrabPressure(const sensor_msgs::FluidPressureConstPtr &pressure_msg);
 
     queue<sensor_msgs::FluidPressureConstPtr> pBuf;
-    // TODO: move lastVal functionality to pressure code when ready
     sensor_msgs::FluidPressure bufLastVal;
     float pressure = 0;
     std::mutex mBufMutex;
 };
 
-void PressureGrabber::GrabPressure(const sensor_msgs::FluidPressureConstPtr &pressure_msg)
-{
-    mBufMutex.lock();
-    // std::cout << "got pressure message!" << std::endl;
-    pBuf.push(pressure_msg);
-    mBufMutex.unlock();
-
-    return;
-}
-
-// ---------------------------------------
-// UW END
-// ---------------------------------------
-
-
-// class ImuGrabber
-// {
-// public:
-//     ImuGrabber(){};
-
-//     void GrabImu(const sensor_msgs::ImuConstPtr &imu_msg);
-
-//     queue<sensor_msgs::ImuConstPtr> imuBuf;
-//     std::mutex mBufMutex;
-// };
-
 class ImageGrabber
 {
-// UW
 public:
     ImageGrabber(PressureGrabber *pPGb): mpPGb(pPGb){}
-    void SyncWithPressure();
-    PressureGrabber *mpPGb;
-// UW END
-public:
-    // ImageGrabber(ImuGrabber *pImuGb): mpImuGb(pImuGb){}
 
     void GrabImage(const sensor_msgs::ImageConstPtr& msg);
     cv::Mat GetImage(const sensor_msgs::ImageConstPtr &img_msg);
-    // void SyncWithImu();
+    void SyncWithPressure();
 
     queue<sensor_msgs::ImageConstPtr> img0Buf;
     std::mutex mBufMutex;
-    // ImuGrabber *mpImuGb;
+    PressureGrabber *mpPGb;
 };
 
+//////////////////////////////////////////////////
+// MAIN
+//////////////////////////////////////////////////
 
 int main(int argc, char **argv)
 {
@@ -114,7 +80,7 @@ int main(int argc, char **argv)
     PressureGrabber pgb;
     ImageGrabber igb(&pgb);
 
-    ros::Subscriber sub_pres = node_handler.subscribe("/pressure", 200, &PressureGrabber::GrabPressure, &pgb); 
+    ros::Subscriber sub_pres = node_handler.subscribe("/pressure", 100, &PressureGrabber::GrabPressure, &pgb); 
     // ros::Subscriber sub_imu = node_handler.subscribe("/imu", 1000, &ImuGrabber::GrabImu, &imugb); 
     ros::Subscriber sub_img = node_handler.subscribe("/camera/image_raw", 100, &ImageGrabber::GrabImage, &igb);
 
@@ -136,9 +102,6 @@ int main(int argc, char **argv)
 // Functions
 //////////////////////////////////////////////////
 
-// ---------------------------------------
-// UW
-// ---------------------------------------
 void ImageGrabber::SyncWithPressure()
 {
     while(1)
@@ -189,10 +152,6 @@ void ImageGrabber::SyncWithPressure()
         std::this_thread::sleep_for(tSleep);
     }
 }
-// ---------------------------------------
-// UW END
-// ---------------------------------------
-
 
 void ImageGrabber::GrabImage(const sensor_msgs::ImageConstPtr &img_msg)
 {
@@ -227,65 +186,12 @@ cv::Mat ImageGrabber::GetImage(const sensor_msgs::ImageConstPtr &img_msg)
     }
 }
 
-// void ImageGrabber::SyncWithImu()
-// {
-//     while(1)
-//     {
-//         if (!img0Buf.empty()&&!mpImuGb->imuBuf.empty())
-//         {
-//             cv::Mat im;
-//             double tIm = 0;
+void PressureGrabber::GrabPressure(const sensor_msgs::FluidPressureConstPtr &pressure_msg)
+{
+    mBufMutex.lock();
+    // std::cout << "got pressure message!" << std::endl;
+    pBuf.push(pressure_msg);
+    mBufMutex.unlock();
 
-//             tIm = img0Buf.front()->header.stamp.toSec();
-//             if(tIm>mpImuGb->imuBuf.back()->header.stamp.toSec())
-//                 continue;
-            
-//             this->mBufMutex.lock();
-//             im = GetImage(img0Buf.front());
-//             ros::Time msg_time = img0Buf.front()->header.stamp;
-//             img0Buf.pop();
-//             this->mBufMutex.unlock();
-
-//             vector<ORB_SLAM3::IMU::Point> vImuMeas;
-//             Eigen::Vector3f Wbb;
-//             mpImuGb->mBufMutex.lock();
-//             if (!mpImuGb->imuBuf.empty())
-//             {
-//                 // Load imu measurements from buffer
-//                 vImuMeas.clear();
-//                 while(!mpImuGb->imuBuf.empty() && mpImuGb->imuBuf.front()->header.stamp.toSec() <= tIm)
-//                 {
-//                     double t = mpImuGb->imuBuf.front()->header.stamp.toSec();
-
-//                     cv::Point3f acc(mpImuGb->imuBuf.front()->linear_acceleration.x, mpImuGb->imuBuf.front()->linear_acceleration.y, mpImuGb->imuBuf.front()->linear_acceleration.z);
-                    
-//                     cv::Point3f gyr(mpImuGb->imuBuf.front()->angular_velocity.x, mpImuGb->imuBuf.front()->angular_velocity.y, mpImuGb->imuBuf.front()->angular_velocity.z);
-
-//                     vImuMeas.push_back(ORB_SLAM3::IMU::Point(acc, gyr, t));
-                    
-//                     Wbb << mpImuGb->imuBuf.front()->angular_velocity.x, mpImuGb->imuBuf.front()->angular_velocity.y, mpImuGb->imuBuf.front()->angular_velocity.z;
-
-//                     mpImuGb->imuBuf.pop();
-//                 }
-//             }
-//             mpImuGb->mBufMutex.unlock();
-
-//             // ORB-SLAM3 runs in TrackMonocular()
-//             Sophus::SE3f Tcw = pSLAM->TrackMonocular(im, tIm, vImuMeas);
-            
-//             publish_topics(msg_time, Wbb);
-//         }
-
-//         std::chrono::milliseconds tSleep(1);
-//         std::this_thread::sleep_for(tSleep);
-//     }
-// }
-
-// void ImuGrabber::GrabImu(const sensor_msgs::ImuConstPtr &imu_msg)
-// {
-//     mBufMutex.lock();
-//     imuBuf.push(imu_msg);
-//     mBufMutex.unlock();
-
-//     return;
-// }
+    return;
+}
