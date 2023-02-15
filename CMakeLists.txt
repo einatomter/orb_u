@@ -241,3 +241,13 @@ target_link_libraries(ros_mono_uw
   ${PROJECT_NAME}
   ${catkin_LIBRARIES}
 )
+
+## ROS node
+add_executable(ros_mono_inertial_uw
+  src/ros_mono_inertial_uw.cc
+  src/common.cc
+)
+target_link_libraries(ros_mono_inertial_uw
+  ${PROJECT_NAME}
+  ${catkin_LIBRARIES}
+)
