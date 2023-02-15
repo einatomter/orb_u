@@ -248,6 +248,7 @@ void Map::clear()
     mspKeyFrames.clear();
     mnMaxKFid = mnInitKFid;
     mbImuInitialized = false;
+    mbScaleUWInitialized = false;
     mvpReferenceMapPoints.clear();
     mvpKeyFrameOrigins.clear();
     mbIMU_BA1 = false;
