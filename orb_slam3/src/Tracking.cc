@@ -1947,8 +1947,6 @@ void Tracking::PreintegrateIMU()
 
 bool Tracking::PredictStateIMU()
 {
-    std::cout << "PredictStateIMU happening" << std::endl;
-
     if(!mCurrentFrame.mpPrevFrame)
     {
         Verbose::PrintMess("No last frame", Verbose::VERBOSITY_NORMAL);

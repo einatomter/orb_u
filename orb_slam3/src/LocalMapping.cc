@@ -122,9 +122,8 @@ void LocalMapping::InitializeScaleUW()
     // }
     Eigen::Vector3d translation = mpCurrentKeyFrame->GetPose().translation().cast<double>();
 
-    cout << "est: " << translation.transpose() * mpCurrentKeyFrame->mPressureMeas.depthAxis << " meas: " << mpCurrentKeyFrame->mPressureMeas.relativeDepthHeight() << endl;
-
-    cout << "scale: " << mScale << endl;
+    // cout << "est: " << translation.transpose() * mpCurrentKeyFrame->mPressureMeas.depthAxis << " meas: " << mpCurrentKeyFrame->mPressureMeas.relativeDepthHeight() << endl;
+    // cout << "scale: " << mScale << endl;
 
     // Initialize scale
     Optimizer::ScaleOptimizationUW(mpAtlas->GetCurrentMap(), mScale, mbInertial);
@@ -175,13 +174,12 @@ void LocalMapping::InitializeScaleUW()
 // LocalMapping::LocalMapping(System* pSys, Atlas *pAtlas, const float bMonocular, bool bInertial, const string &_strSeqName), const bool bIsUW:
 //     mpSystem(pSys), mbMonocular(bMonocular), mbInertial(bInertial), mbResetRequested(false), mbResetRequestedActiveMap(false), mbFinishRequested(false), mbFinished(true), mpAtlas(pAtlas), bInitializing(false),
 //     mbAbortBA(false), mbStopped(false), mbStopRequested(false), mbNotStop(false), mbAcceptKeyFrames(true),
-//     mIdxInit(0), mScale(1.0), mInitSect(0), mbNotBA1(true), mbNotBA2(true), mIdxIteration(0), infoInertial(Eigen::MatrixXd::Zero(9,9)),
-//     mbIsUW(bIsUW)
+//     mIdxInit(0), mScale(1.0), mInitSect(0), mbNotBA1(true), mbNotBA2(true), mIdxIteration(0), infoInertial(Eigen::MatrixXd::Zero(9,9))
 LocalMapping::LocalMapping(System* pSys, Atlas *pAtlas, const float bMonocular, bool bInertial, const string &_strSeqName, const bool bIsUW):
     mpSystem(pSys), mbMonocular(bMonocular), mbInertial(bInertial), mbResetRequested(false), mbResetRequestedActiveMap(false), mbFinishRequested(false), mbFinished(true), mpAtlas(pAtlas), bInitializing(false),
     mbAbortBA(false), mbStopped(false), mbStopRequested(false), mbNotStop(false), mbAcceptKeyFrames(true),
     mIdxInit(0), mScale(1.0), mInitSect(0), mbNotBA1(true), mbNotBA2(true), mIdxIteration(0), infoInertial(Eigen::MatrixXd::Zero(9,9)),
-    mbIsUW(bIsUW), mScaleOKCount(0), mScaleOKThreshold(10), mScaleMargin(0.03)
+    mbIsUW(bIsUW), mScaleOKCount(0), mScaleOKThreshold(15), mScaleMargin(0.03)
 {
     mnMatchesInliers = 0;
 
@@ -301,7 +299,7 @@ void LocalMapping::Run()
                     {
                         if (mpAtlas->GetCurrentMap()->isScaleUWInitialized() && mbIsUW) // UW
                             Optimizer::LocalBundleAdjustment(mpCurrentKeyFrame,&mbAbortBA, mpCurrentKeyFrame->GetMap(),num_FixedKF_BA,num_OptKF_BA,num_MPs_BA,num_edges_BA, true);
-                        else
+                        else    // TODO: weird scaling issues when IMU is enabled
                             Optimizer::LocalBundleAdjustment(mpCurrentKeyFrame,&mbAbortBA, mpCurrentKeyFrame->GetMap(),num_FixedKF_BA,num_OptKF_BA,num_MPs_BA,num_edges_BA);
                         b_doneLBA = true;
                     }
@@ -330,29 +328,21 @@ void LocalMapping::Run()
                 // Initialize pressure
                 if(!mpCurrentKeyFrame->GetMap()->isScaleUWInitialized() && mbIsUW)
                 {
-                    cout << "current pose: " << mpCurrentKeyFrame->GetPose().translation().transpose() << endl;
                     InitializeScaleUW();
                 }
 
                 // Initialize IMU here
-                if(!mpCurrentKeyFrame->GetMap()->isImuInitialized() && mbInertial && !mbIsUW)
+                if(!mpCurrentKeyFrame->GetMap()->isImuInitialized() && mbInertial)
                 {
-                    std::cout << "This one is not supposed to run" << std::endl;
-                    if (mbMonocular)
+                    // if UW, initialize pressure first
+                    if (!mpCurrentKeyFrame->GetMap()->isScaleUWInitialized() && mbIsUW)
+                        InitializeScaleUW();
+                    else if (mbMonocular)
                         InitializeIMU(1e2, 1e10, true);
                     else
                         InitializeIMU(1e2, 1e5, true);
                 }
 
-                if (!mpCurrentKeyFrame->GetMap()->isImuInitialized() && mbInertial && mbIsUW && mpCurrentKeyFrame->GetMap()->isScaleUWInitialized())
-                {
-                    std::cout << "Doing IMU init" << std::endl;
-
-                    if (mbMonocular)
-                        InitializeIMU(1e2, 1e10, true);
-                    else
-                        InitializeIMU(1e2, 1e5, true);
-                }
                 // Check redundant local Keyframes
                 KeyFrameCulling();
 
@@ -401,6 +391,7 @@ void LocalMapping::Run()
                                 (mTinit>55.0f && mTinit<55.5f)||
                                 (mTinit>65.0f && mTinit<65.5f)||
                                 (mTinit>75.0f && mTinit<75.5f))){
+                            std::cout << "In scale refinement" << std::endl;
                             if (mbMonocular)
                                 ScaleRefinement();
                         }
