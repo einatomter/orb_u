@@ -66,20 +66,40 @@ void Optimizer::ScaleOptimizationUW(Map *pMap, double &scale, bool bInertial)
     g2o::OptimizationAlgorithmLevenberg* solver = new g2o::OptimizationAlgorithmLevenberg(solver_ptr);
     optimizer.setAlgorithm(solver);
 
+    int N = 0;
     // Set Pose vertices as fixed
     for(size_t i=0; i<vpKFs.size(); i++)
     {
         KeyFrame* pKF = vpKFs[i];
         if(pKF->isBad())
             continue;
-        g2o::VertexSE3Expmap * vSE3 = new g2o::VertexSE3Expmap();
+
         Sophus::SE3<float> Tcw = pKF->GetPose();
+        Eigen::Matrix<double, 1, 1> depthEstimate(Tcw.translation().cast<double>().transpose() * pKF->mPressureMeas.depthAxis);
+        
+        // Do not include values that are too low
+        if(fabs(depthEstimate(0,0)) < 5e-2) 
+            continue;
+
+        // // Do not include values if signs are inverted
+        if (signbit(depthEstimate(0, 0)) != signbit(pKF->mPressureMeas.relativeDepthHeight()))
+            continue;
+
+        g2o::VertexSE3Expmap * vSE3 = new g2o::VertexSE3Expmap();
         vSE3->setEstimate(g2o::SE3Quat(Tcw.unit_quaternion().cast<double>(),Tcw.translation().cast<double>()));
         vSE3->setId(pKF->mnId);
         vSE3->setFixed(true);
         optimizer.addVertex(vSE3);
         if(pKF->mnId>maxKFid)
             maxKFid=pKF->mnId;
+
+        N++;
+    }
+
+    if (N < 5)
+    {
+        // std::cout << "Too few valid keyframes to perform scale optimization" << std::endl;
+        return;   
     }
 
     // Set scale vertex
@@ -111,6 +131,18 @@ void Optimizer::ScaleOptimizationUW(Map *pMap, double &scale, bool bInertial)
         if(pKF->isBad())
             continue;
 
+        Sophus::SE3<float> Tcw = pKF->GetPose();
+        Eigen::Matrix<double, 1, 1> depthEstimate(Tcw.translation().cast<double>().transpose() * pKF->mPressureMeas.depthAxis);
+
+        // Do not include values that are too low
+        // TODO: do the same for measured
+        if(fabs(depthEstimate(0,0)) < 5e-2) 
+            continue;
+
+        // // Do not include values if signs are inverted
+        if (signbit(depthEstimate(0, 0)) != signbit(pKF->mPressureMeas.relativeDepthHeight()))
+            continue;
+
         // Set Depth edge
         UW::EdgeScale* e = new UW::EdgeScale;
 
@@ -138,6 +170,7 @@ void Optimizer::ScaleOptimizationUW(Map *pMap, double &scale, bool bInertial)
     optimizer.optimize(its);
     optimizer.computeActiveErrors();
     // float err_end = optimizer.activeRobustChi2();
+
 
     // Recover optimized data
     // if (bInertial)

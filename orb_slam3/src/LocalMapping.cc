@@ -120,6 +120,11 @@ void LocalMapping::InitializeScaleUW()
     //     bInitializing = false;
     //     return;
     // }
+    Eigen::Vector3d translation = mpCurrentKeyFrame->GetPose().translation().cast<double>();
+
+    cout << "est: " << translation.transpose() * mpCurrentKeyFrame->mPressureMeas.depthAxis << " meas: " << mpCurrentKeyFrame->mPressureMeas.relativeDepthHeight() << endl;
+
+    cout << "scale: " << mScale << endl;
 
     // Initialize scale
     Optimizer::ScaleOptimizationUW(mpAtlas->GetCurrentMap(), mScale, mbInertial);
@@ -130,6 +135,7 @@ void LocalMapping::InitializeScaleUW()
         bInitializing=false;
         return;
     }
+
 
     // Before this line we are not changing the map
     unique_lock<mutex> lock(mpAtlas->GetCurrentMap()->mMutexMapUpdate);
