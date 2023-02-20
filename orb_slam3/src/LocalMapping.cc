@@ -360,7 +360,7 @@ void LocalMapping::Run()
                         if(!mpCurrentKeyFrame->GetMap()->GetIniertialBA1()){
                             if (mTinit>5.0f)
                             {
-                                cout << "start VIBA 1" << endl;
+                                cout << "start VIBA 1, time: " << mpCurrentKeyFrame->mTimeStamp << endl;
                                 mpCurrentKeyFrame->GetMap()->SetIniertialBA1();
                                 if (mbMonocular)
                                     InitializeIMU(1.f, 1e5, true);
@@ -379,7 +379,7 @@ void LocalMapping::Run()
                                 else
                                     InitializeIMU(0.f, 0.f, true);
 
-                                cout << "end VIBA 2" << endl;
+                                cout << "end VIBA 2, time: " << mpCurrentKeyFrame->mTimeStamp << endl;
                             }
                         }
 
@@ -391,7 +391,6 @@ void LocalMapping::Run()
                                 (mTinit>55.0f && mTinit<55.5f)||
                                 (mTinit>65.0f && mTinit<65.5f)||
                                 (mTinit>75.0f && mTinit<75.5f))){
-                            std::cout << "In scale refinement" << std::endl;
                             if (mbMonocular)
                                 ScaleRefinement();
                         }
