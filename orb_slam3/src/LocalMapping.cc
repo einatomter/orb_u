@@ -40,6 +40,8 @@ bool LocalMapping::CalculateScaleUW(double &scale)
     long unsigned int maxKFid = pMap->GetMaxKFid();
     const vector<KeyFrame*> vpKFs = pMap->GetAllKeyFrames();
 
+    float minDepthDistance = 0.05;
+
     double sumEstimate = 0;
     double sumMeasured = 0;
 
@@ -56,21 +58,25 @@ bool LocalMapping::CalculateScaleUW(double &scale)
             if(pKFi->isBad() || pKFi->mPrevKF->mnId>maxKFid)
                 continue;
 
-            Eigen::Vector3d translationEstimate = pKFi->GetPose().translation().cast<double>();
-            double depthEstimate = translationEstimate.transpose() * mdepthAxis;
+            Sophus::SE3<float> Tcw = pKFi->GetPose();
+            // recover element (0,0) of matrix after vector multiplication
+            float depthEstimate = (Tcw.translation().cast<double>().transpose() * pKFi->mPressureMeas.depthAxis)(0,0);
             float depthMeasured = pKFi->mPressureMeas.relativeDepthHeight();
-            
-            if(fabs(depthEstimate) < 1e-1)  // low value estimates are too sensitive to noise
+
+            // Do not include values that are too low
+            if(fabs(depthEstimate) < minDepthDistance || fabs(depthMeasured) < minDepthDistance) 
                 continue;
 
-            sumMeasured += fabs(depthMeasured);
+            // // Do not include values if signs are inverted
+            if (signbit(depthEstimate) != signbit(depthMeasured))
+                continue;
+
             sumEstimate += fabs(depthEstimate);
+            sumMeasured += fabs(depthMeasured);
 
             double ratio = depthMeasured/depthEstimate;
             // std::cout << "depth over pose: " << scale << std::endl;
-            
-            if(ratio <= 0)  // Ignore if ratio is negative
-                continue;
+
             sumScale += ratio;
             count++;
         }
@@ -113,24 +119,32 @@ void LocalMapping::InitializeScaleUW()
     while(CheckNewKeyFrames())
         ProcessNewKeyFrame();
 
+    Eigen::Vector3d translation = mpCurrentKeyFrame->GetPose().translation().cast<double>();
+
+
     // Initialize scale (old)
     // bool initOK = CalculateScaleUW(mScale);
-    // if (!initOK)
-    // {
-    //     bInitializing = false;
-    //     return;
-    // }
-    Eigen::Vector3d translation = mpCurrentKeyFrame->GetPose().translation().cast<double>();
+
+    Eigen::Matrix3d rotation = Eigen::Matrix3d::Identity();
+
+    // Initialize scale
+    bool initOK = Optimizer::ScaleOptimizationUW(mpAtlas->GetCurrentMap(), mScale, rotation, 0.05);
 
     // cout << "est: " << translation.transpose() * mpCurrentKeyFrame->mPressureMeas.depthAxis << " meas: " << mpCurrentKeyFrame->mPressureMeas.relativeDepthHeight() << endl;
     // cout << "scale: " << mScale << endl;
+    // cout << "rotation: " << rotation << endl;
 
-    // Initialize scale
-    Optimizer::ScaleOptimizationUW(mpAtlas->GetCurrentMap(), mScale, mbInertial);
-    
+    if(!initOK)
+    {
+        // cout << "Too few valid keyframes" << endl;
+        bInitializing=false;
+        return;
+    }
+
     if(mScale < 1e-1) // 1e-1
     {
-        cout << "scale too small" << endl;
+        // cout << "scale too small" << endl;
+        mScale = 1.0;
         bInitializing=false;
         return;
     }
@@ -140,7 +154,7 @@ void LocalMapping::InitializeScaleUW()
     unique_lock<mutex> lock(mpAtlas->GetCurrentMap()->mMutexMapUpdate);
     if ((fabs(mScale-1.f)>0.002))
     {
-        Sophus::SE3f Tgw(Eigen::Matrix3d::Identity().cast<float>(),Eigen::Vector3f::Zero());
+        Sophus::SE3f Tgw(rotation.transpose().cast<float>(),Eigen::Vector3f::Zero());
         mpAtlas->GetCurrentMap()->ApplyScaledRotation(Tgw,mScale,true);
     }
 

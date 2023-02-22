@@ -188,44 +188,6 @@ private:
     Eigen::Vector3d _translation;
 };
 
-
-// class VertexDepth: public g2o::BaseVertex<1, float>
-// {
-// public:
-//     EIGEN_MAKE_ALIGNED_OPERATOR_NEW
-//     VertexDepth(){}
-
-//     virtual void setToOriginImpl(){
-//         _estimate = 0;
-//     }
-
-//     virtual void oplusImpl(const double* update_){
-//         _estimate += *update_;
-//     }
-
-//     virtual bool read(std::istream& is){return false;}
-//     virtual bool write(std::ostream& os) const{return false;}
-// };
-
-
-// class VertexScale: public g2o::BaseVertex<1, double>
-// {
-//     public:
-//         EIGEN_MAKE_ALIGNED_OPERATOR_NEW
-//         VertexScale(){}
-
-//     virtual void setToOriginImpl(){
-//         _estimate = 1.0;
-//     }
-
-//     virtual void oplusImpl(const double* update_){
-//         _estimate += *update_;
-//     }
-
-//     virtual bool read(std::istream& is){return false;}
-//     virtual bool write(std::ostream& os) const{return false;}
-// };
-
 } // namespace UW
 
 #endif // PRESSURETYPES_H

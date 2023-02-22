@@ -49,11 +49,12 @@ namespace ORB_SLAM3
 // UW
 // -------------------------------------------------------------------------------------------
 
-void Optimizer::ScaleOptimizationUW(Map *pMap, double &scale, bool bInertial)
+bool Optimizer::ScaleOptimizationUW(Map *pMap, double &scale, Eigen::Matrix3d &Rwg, float minDepthDistance)
 {
     int its = 10;
     long unsigned int maxKFid = pMap->GetMaxKFid();
     const vector<KeyFrame*> vpKFs = pMap->GetAllKeyFrames();
+    vector<KeyFrame*> vpValidKFs;
 
     // Setup optimizer
     g2o::SparseOptimizer optimizer;
@@ -75,14 +76,16 @@ void Optimizer::ScaleOptimizationUW(Map *pMap, double &scale, bool bInertial)
             continue;
 
         Sophus::SE3<float> Tcw = pKF->GetPose();
-        Eigen::Matrix<double, 1, 1> depthEstimate(Tcw.translation().cast<double>().transpose() * pKF->mPressureMeas.depthAxis);
-        
+        // recover element (0,0) of matrix after vector multiplication
+        float depthEstimate = (Tcw.translation().cast<double>().transpose() * pKF->mPressureMeas.depthAxis)(0,0);
+        float depthMeasured = pKF->mPressureMeas.relativeDepthHeight();
+
         // Do not include values that are too low
-        if(fabs(depthEstimate(0,0)) < 5e-2) 
+        if(fabs(depthEstimate) < minDepthDistance || fabs(depthMeasured) < minDepthDistance) 
             continue;
 
         // // Do not include values if signs are inverted
-        if (signbit(depthEstimate(0, 0)) != signbit(pKF->mPressureMeas.relativeDepthHeight()))
+        if (signbit(depthEstimate) != signbit(depthMeasured))
             continue;
 
         g2o::VertexSE3Expmap * vSE3 = new g2o::VertexSE3Expmap();
@@ -93,66 +96,53 @@ void Optimizer::ScaleOptimizationUW(Map *pMap, double &scale, bool bInertial)
         if(pKF->mnId>maxKFid)
             maxKFid=pKF->mnId;
 
+        vpValidKFs.push_back(pKF);
         N++;
     }
 
     if (N < 5)
     {
         // std::cout << "Too few valid keyframes to perform scale optimization" << std::endl;
-        return;   
+        return false;   
     }
 
-    // Set scale vertex
-    // TODO: maybe cast to its base class?
-    // if (bInertial)
-    // {
-    //     // IMU Vertex definition
-    //     VertexScale* VS = new VertexScale(scale);
-    //     VS->setId(maxKFid + 1);
-    //     VS->setFixed(false);
-    //     optimizer.addVertex(VS);
-    // }
-    // else
-    // {
-    // UW Vertex definition
+    // Set scale and gravity vertices
     UW::VertexScale* VS = new UW::VertexScale(scale);
     VS->setId(maxKFid + 1);
     VS->setFixed(false);
     optimizer.addVertex(VS);
-    // }
+    VertexGDir* VGDir = new VertexGDir(Rwg);
+    VGDir->setId(maxKFid + 2);
+    VGDir->setFixed(false);
+    optimizer.addVertex(VGDir);
 
-    const float deltaHuber = 1;
+    const float deltaHuber = sqrt(5.991);
 
     // Set edges
-    for(size_t i=0; i<vpKFs.size(); i++)
+    for(size_t i=0; i<vpValidKFs.size(); i++)
     {
-        KeyFrame* pKF = vpKFs[i];
+        KeyFrame* pKF = vpValidKFs[i];
 
-        if(pKF->isBad())
-            continue;
 
-        Sophus::SE3<float> Tcw = pKF->GetPose();
-        Eigen::Matrix<double, 1, 1> depthEstimate(Tcw.translation().cast<double>().transpose() * pKF->mPressureMeas.depthAxis);
-
-        // Do not include values that are too low
-        // TODO: do the same for measured
-        if(fabs(depthEstimate(0,0)) < 5e-2) 
-            continue;
-
-        // // Do not include values if signs are inverted
-        if (signbit(depthEstimate(0, 0)) != signbit(pKF->mPressureMeas.relativeDepthHeight()))
-            continue;
+        EdgeGSUW* e = new EdgeGSUW;
+        // UW::EdgeScale* e = new UW::EdgeScale;
 
         // Set Depth edge
-        UW::EdgeScale* e = new UW::EdgeScale;
+        // g2o::HyperGraph::Vertex* pVPose = optimizer.vertex(pKF->mnId);
+        // g2o::HyperGraph::Vertex* pVS = optimizer.vertex(maxKFid + 1);
+        // g2o::HyperGraph::Vertex* pVG = optimizer.vertex(maxKFid + 2);
 
         e->setVertex(0, dynamic_cast<g2o::OptimizableGraph::Vertex*>(optimizer.vertex(pKF->mnId)));
         e->setVertex(1, dynamic_cast<g2o::OptimizableGraph::Vertex*>(optimizer.vertex(maxKFid + 1)));
+        e->setVertex(2, dynamic_cast<g2o::OptimizableGraph::Vertex*>(optimizer.vertex(maxKFid + 2)));
 
         e->setMeasurement(pKF->mPressureMeas.relativeDepthHeight());
+
         e->setDepthAxis(pKF->mPressureMeas.depthAxis);
+
         Eigen::Matrix<double, 1, 1> depthNoise(UW::DEPTH_NOISE);
         e->setInformation(depthNoise.inverse());
+        // e->setInformation(Eigen::Matrix2d::Identity());
 
         g2o::RobustKernelHuber* rk = new g2o::RobustKernelHuber;
         e->setRobustKernel(rk);
@@ -160,7 +150,6 @@ void Optimizer::ScaleOptimizationUW(Map *pMap, double &scale, bool bInertial)
 
         optimizer.addEdge(e);
     }
-
 
     // Compute error for different scales
     optimizer.setVerbose(false);
@@ -170,19 +159,9 @@ void Optimizer::ScaleOptimizationUW(Map *pMap, double &scale, bool bInertial)
     optimizer.optimize(its);
     optimizer.computeActiveErrors();
     // float err_end = optimizer.activeRobustChi2();
-
-
-    // Recover optimized data
-    // if (bInertial)
-    // {
-    //     VertexScale* VS = static_cast<VertexScale*>(optimizer.vertex(maxKFid + 1));
-    //     scale = VS->estimate();
-    // }
-    // else
-    // {
-    //     UW::VertexScale* VS = static_cast<UW::VertexScale*>(optimizer.vertex(maxKFid + 1));
     scale = VS->estimate();
-    // }
+    Rwg = VGDir->estimate().Rwg;
+    return true;
 }
 
 // -------------------------------------------------------------------------------------------
