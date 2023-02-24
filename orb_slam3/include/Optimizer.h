@@ -47,7 +47,8 @@ class Optimizer
 {
 // UW
 public:
-    bool static ScaleOptimizationUW(Map *pMap, double &scale, Eigen::Matrix3d &Rwg, float minDepthDistance = 0.05);
+    bool static ScaleOptimizationUW(Map *pMap, double &scale, Eigen::Matrix3d &Rwg, 
+                                    float minDepthDistance = 0.05, int minKF = 10, bool setRwgFixed = true, bool setScaleFixed = false);
 // UW END
 public:
 

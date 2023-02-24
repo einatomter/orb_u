@@ -46,6 +46,7 @@ public:
     void InitializeScaleUW();  // Unused in favor of an optimization-based algorithm
 
     bool mbIsUW;
+    bool first = true;
 
     int mScaleOKCount;  // counter for scale OK
 

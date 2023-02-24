@@ -867,7 +867,7 @@ public:
         
         Eigen::Vector3d translation(VPose->estimate().translation());
         
-        const Eigen::Matrix<double, 1, 1> est(VScale->estimate() * ((VGDir->estimate().Rwg * translation).transpose() * _depthAxis));
+        const Eigen::Matrix<double, 1, 1> est(VScale->estimate() * ((VGDir->estimate().Rwg.transpose() * translation).transpose() * _depthAxis));
         const Eigen::Matrix<double, 1, 1> obs(_measurement);
         _error = (obs - est);
     }

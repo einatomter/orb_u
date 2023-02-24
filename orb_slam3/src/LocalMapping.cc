@@ -109,7 +109,7 @@ void LocalMapping::InitializeScaleUW()
     if (mbResetRequested)
         return;
 
-    int nMinKF = 5;
+    int nMinKF = 10;
 
     if(mpAtlas->KeyFramesInMap()<nMinKF)
         return;
@@ -122,17 +122,29 @@ void LocalMapping::InitializeScaleUW()
     Eigen::Vector3d translation = mpCurrentKeyFrame->GetPose().translation().cast<double>();
 
 
-    // Initialize scale (old)
-    // bool initOK = CalculateScaleUW(mScale);
 
     Eigen::Matrix3d rotation = Eigen::Matrix3d::Identity();
+    mScale = 1.0;
 
     // Initialize scale
-    bool initOK = Optimizer::ScaleOptimizationUW(mpAtlas->GetCurrentMap(), mScale, rotation, 0.05);
+    bool initOK;
 
-    // cout << "est: " << translation.transpose() * mpCurrentKeyFrame->mPressureMeas.depthAxis << " meas: " << mpCurrentKeyFrame->mPressureMeas.relativeDepthHeight() << endl;
-    // cout << "scale: " << mScale << endl;
-    // cout << "rotation: " << rotation << endl;
+    // Initialize scale (old)
+    // initOK = CalculateScaleUW(mScale);
+
+    if (first)
+    {
+        initOK = Optimizer::ScaleOptimizationUW(mpAtlas->GetCurrentMap(), mScale, rotation, 0.05, 25, false, true);
+    }
+    else
+        initOK = Optimizer::ScaleOptimizationUW(mpAtlas->GetCurrentMap(), mScale, rotation, 0.05, 10);
+
+
+    if (mpCurrentKeyFrame->GetMap()->isScaleUWInitialized())
+    {
+        Eigen::Matrix3d rotation = Eigen::Matrix3d::Identity();
+        initOK = Optimizer::ScaleOptimizationUW(mpAtlas->GetCurrentMap(), mScale, rotation, 0.05, 50, false, true);
+    }
 
     if(!initOK)
     {
@@ -149,13 +161,17 @@ void LocalMapping::InitializeScaleUW()
         return;
     }
 
+    // cout << "est: " << translation.transpose() * mpCurrentKeyFrame->mPressureMeas.depthAxis << " meas: " << mpCurrentKeyFrame->mPressureMeas.relativeDepthHeight() << endl;
+    cout << "scale and rotation: " << mScale << endl;
+    cout << rotation << endl;
 
     // Before this line we are not changing the map
     unique_lock<mutex> lock(mpAtlas->GetCurrentMap()->mMutexMapUpdate);
-    if ((fabs(mScale-1.f)>0.002))
+    if ((fabs(mScale-1.f) > 0.002) || first)
     {
         Sophus::SE3f Tgw(rotation.transpose().cast<float>(),Eigen::Vector3f::Zero());
         mpAtlas->GetCurrentMap()->ApplyScaledRotation(Tgw,mScale,true);
+        first = false;
     }
 
     // Decide whether scale has been initialized successfully
@@ -166,14 +182,16 @@ void LocalMapping::InitializeScaleUW()
         mScaleOKCount = 0;
 
     // If scale has been consecutively consistent, set successful initialization
-    if(mScaleOKCount >= mScaleOKThreshold)
+    if(mScaleOKCount >= mScaleOKThreshold && !mpCurrentKeyFrame->GetMap()->isScaleUWInitialized())
     {
         cout << "Scale UW initialized successfully" << endl;
         mpAtlas->GetCurrentMap()->setScaleUWInitialized();
         mScaleOKCount = 0;
 
+        first = true;
+
         cout << "Performing global BA" << endl;
-        Optimizer::GlobalBundleAdjustemnt(mpAtlas->GetCurrentMap(), 10, NULL, mpCurrentKeyFrame->mnId, true, true);
+        Optimizer::GlobalBundleAdjustemnt(mpAtlas->GetCurrentMap(), 20, NULL, mpCurrentKeyFrame->mnId, true, true);
         cout << "Global BA end" << endl;
     }
 
@@ -193,7 +211,7 @@ LocalMapping::LocalMapping(System* pSys, Atlas *pAtlas, const float bMonocular, 
     mpSystem(pSys), mbMonocular(bMonocular), mbInertial(bInertial), mbResetRequested(false), mbResetRequestedActiveMap(false), mbFinishRequested(false), mbFinished(true), mpAtlas(pAtlas), bInitializing(false),
     mbAbortBA(false), mbStopped(false), mbStopRequested(false), mbNotStop(false), mbAcceptKeyFrames(true),
     mIdxInit(0), mScale(1.0), mInitSect(0), mbNotBA1(true), mbNotBA2(true), mIdxIteration(0), infoInertial(Eigen::MatrixXd::Zero(9,9)),
-    mbIsUW(bIsUW), mScaleOKCount(0), mScaleOKThreshold(15), mScaleMargin(0.03)
+    mbIsUW(bIsUW), mScaleOKCount(0), mScaleOKThreshold(15), mScaleMargin(0.02)
 {
     mnMatchesInliers = 0;
 
@@ -340,7 +358,8 @@ void LocalMapping::Run()
 
 #endif
                 // Initialize pressure
-                if(!mpCurrentKeyFrame->GetMap()->isScaleUWInitialized() && mbIsUW)
+                // if((!mpCurrentKeyFrame->GetMap()->isScaleUWInitialized()) && mbIsUW)
+                if(mbIsUW)
                 {
                     InitializeScaleUW();
                 }

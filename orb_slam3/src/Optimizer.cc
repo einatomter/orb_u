@@ -49,7 +49,7 @@ namespace ORB_SLAM3
 // UW
 // -------------------------------------------------------------------------------------------
 
-bool Optimizer::ScaleOptimizationUW(Map *pMap, double &scale, Eigen::Matrix3d &Rwg, float minDepthDistance)
+bool Optimizer::ScaleOptimizationUW(Map *pMap, double &scale, Eigen::Matrix3d &Rwg, float minDepthDistance, int minKF, bool setRwgFixed, bool setScaleFixed)
 {
     int its = 10;
     long unsigned int maxKFid = pMap->GetMaxKFid();
@@ -65,6 +65,7 @@ bool Optimizer::ScaleOptimizationUW(Map *pMap, double &scale, Eigen::Matrix3d &R
     g2o::BlockSolverX * solver_ptr = new g2o::BlockSolverX(linearSolver);
 
     g2o::OptimizationAlgorithmLevenberg* solver = new g2o::OptimizationAlgorithmLevenberg(solver_ptr);
+    solver->setUserLambdaInit(1e0);
     optimizer.setAlgorithm(solver);
 
     int N = 0;
@@ -81,12 +82,14 @@ bool Optimizer::ScaleOptimizationUW(Map *pMap, double &scale, Eigen::Matrix3d &R
         float depthMeasured = pKF->mPressureMeas.relativeDepthHeight();
 
         // Do not include values that are too low
-        if(fabs(depthEstimate) < minDepthDistance || fabs(depthMeasured) < minDepthDistance) 
-            continue;
-
-        // // Do not include values if signs are inverted
-        if (signbit(depthEstimate) != signbit(depthMeasured))
-            continue;
+        if (!setScaleFixed)
+        {
+            if(fabs(depthEstimate) < minDepthDistance || fabs(depthMeasured) < minDepthDistance) 
+                continue;
+            // Do not include values if signs are inverted
+            if (signbit(depthEstimate) != signbit(depthMeasured))
+                continue;
+        }
 
         g2o::VertexSE3Expmap * vSE3 = new g2o::VertexSE3Expmap();
         vSE3->setEstimate(g2o::SE3Quat(Tcw.unit_quaternion().cast<double>(),Tcw.translation().cast<double>()));
@@ -100,7 +103,7 @@ bool Optimizer::ScaleOptimizationUW(Map *pMap, double &scale, Eigen::Matrix3d &R
         N++;
     }
 
-    if (N < 5)
+    if (N < minKF)
     {
         // std::cout << "Too few valid keyframes to perform scale optimization" << std::endl;
         return false;   
@@ -109,11 +112,11 @@ bool Optimizer::ScaleOptimizationUW(Map *pMap, double &scale, Eigen::Matrix3d &R
     // Set scale and gravity vertices
     UW::VertexScale* VS = new UW::VertexScale(scale);
     VS->setId(maxKFid + 1);
-    VS->setFixed(false);
+    VS->setFixed(setScaleFixed);
     optimizer.addVertex(VS);
     VertexGDir* VGDir = new VertexGDir(Rwg);
     VGDir->setId(maxKFid + 2);
-    VGDir->setFixed(false);
+    VGDir->setFixed(setRwgFixed);
     optimizer.addVertex(VGDir);
 
     const float deltaHuber = sqrt(5.991);
@@ -144,9 +147,12 @@ bool Optimizer::ScaleOptimizationUW(Map *pMap, double &scale, Eigen::Matrix3d &R
         e->setInformation(depthNoise.inverse());
         // e->setInformation(Eigen::Matrix2d::Identity());
 
-        g2o::RobustKernelHuber* rk = new g2o::RobustKernelHuber;
-        e->setRobustKernel(rk);
-        rk->setDelta(deltaHuber);
+        if(setRwgFixed)
+        {
+            g2o::RobustKernelHuber* rk = new g2o::RobustKernelHuber;
+            e->setRobustKernel(rk);
+            rk->setDelta(deltaHuber);
+        }
 
         optimizer.addEdge(e);
     }
