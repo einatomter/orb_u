@@ -109,7 +109,7 @@ void LocalMapping::InitializeScaleUW()
     if (mbResetRequested)
         return;
 
-    int nMinKF = 10;
+    int nMinKF = 20;
 
     if(mpAtlas->KeyFramesInMap()<nMinKF)
         return;
@@ -127,24 +127,19 @@ void LocalMapping::InitializeScaleUW()
     mScale = 1.0;
 
     // Initialize scale
-    bool initOK;
+    bool initOK = true;
 
     // Initialize scale (old)
     // initOK = CalculateScaleUW(mScale);
 
     if (first)
     {
-        initOK = Optimizer::ScaleOptimizationUW(mpAtlas->GetCurrentMap(), mScale, rotation, 0.05, 25, false, true);
+        initOK = Optimizer::UWBA(mpAtlas->GetCurrentMap(), mScale, rotation, 20, NULL, mpCurrentKeyFrame->mnId, true);
+        // initOK = Optimizer::ScaleOptimizationUW(mpAtlas->GetCurrentMap(), mScale, rotation, 0.1, 10, true, false);
     }
-    else
-        initOK = Optimizer::ScaleOptimizationUW(mpAtlas->GetCurrentMap(), mScale, rotation, 0.05, 10);
-
-
-    if (mpCurrentKeyFrame->GetMap()->isScaleUWInitialized())
-    {
-        Eigen::Matrix3d rotation = Eigen::Matrix3d::Identity();
-        initOK = Optimizer::ScaleOptimizationUW(mpAtlas->GetCurrentMap(), mScale, rotation, 0.05, 50, false, true);
-    }
+    // else
+        initOK = Optimizer::UWBA(mpAtlas->GetCurrentMap(), mScale, rotation, 10, NULL, mpCurrentKeyFrame->mnId, true, true, false);
+        // initOK = Optimizer::ScaleOptimizationUW(mpAtlas->GetCurrentMap(), mScale, rotation, 0.08, 10);
 
     if(!initOK)
     {
@@ -171,6 +166,7 @@ void LocalMapping::InitializeScaleUW()
     {
         Sophus::SE3f Tgw(rotation.transpose().cast<float>(),Eigen::Vector3f::Zero());
         mpAtlas->GetCurrentMap()->ApplyScaledRotation(Tgw,mScale,true);
+        mpTracker->UpdateFrameUW(mScale, mpCurrentKeyFrame);
         first = false;
     }
 
@@ -188,10 +184,15 @@ void LocalMapping::InitializeScaleUW()
         mpAtlas->GetCurrentMap()->setScaleUWInitialized();
         mScaleOKCount = 0;
 
-        first = true;
-
         cout << "Performing global BA" << endl;
-        Optimizer::GlobalBundleAdjustemnt(mpAtlas->GetCurrentMap(), 20, NULL, mpCurrentKeyFrame->mnId, true, true);
+        Optimizer::UWBA(mpAtlas->GetCurrentMap(), mScale, rotation, 30, NULL, mpCurrentKeyFrame->mnId, true, false, true);
+        cout << "scale: " << mScale << endl;
+        cout << "recovered rotation matrix:" << endl;
+        cout << rotation << endl;
+
+        Sophus::SE3f Tgw(rotation.transpose().cast<float>(),Eigen::Vector3f::Zero());
+        mpAtlas->GetCurrentMap()->ApplyScaledRotation(Tgw, 1,true);
+
         cout << "Global BA end" << endl;
     }
 
@@ -358,8 +359,8 @@ void LocalMapping::Run()
 
 #endif
                 // Initialize pressure
-                // if((!mpCurrentKeyFrame->GetMap()->isScaleUWInitialized()) && mbIsUW)
-                if(mbIsUW)
+                // if(mbIsUW)
+                if((!mpCurrentKeyFrame->GetMap()->isScaleUWInitialized()) && mbIsUW)
                 {
                     InitializeScaleUW();
                 }

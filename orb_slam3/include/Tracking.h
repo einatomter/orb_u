@@ -64,6 +64,8 @@ public:
     void ApplyClahe(const cv::Mat &src, cv::Mat &dst);
     void MonocularInitializationUW();
 
+    void UpdateFrameUW(const float s, KeyFrame* pCurrentKeyFrame);
+
     bool mbIsUW;
     float mInitDepth;
 

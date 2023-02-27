@@ -230,6 +230,33 @@ void Tracking::MonocularInitializationUW()
     }
 }
 
+
+void Tracking::UpdateFrameUW(const float s, KeyFrame* pCurrentKeyFrame)
+{
+    Map * pMap = pCurrentKeyFrame->GetMap();
+    unsigned int index = mnFirstFrameId;
+    list<ORB_SLAM3::KeyFrame*>::iterator lRit = mlpReferences.begin();
+    list<bool>::iterator lbL = mlbLost.begin();
+    for(auto lit=mlRelativeFramePoses.begin(),lend=mlRelativeFramePoses.end();lit!=lend;lit++, lRit++, lbL++)
+    {
+        if(*lbL)
+            continue;
+
+        KeyFrame* pKF = *lRit;
+
+        while(pKF->isBad())
+        {
+            pKF = pKF->GetParent();
+        }
+
+        if(pKF->GetMap() == pMap)
+        {
+            (*lit).translation() *= s;
+        }
+    }
+}
+
+
 // -------------------------------------------------------------------------------------------
 // UW END
 // -------------------------------------------------------------------------------------------
