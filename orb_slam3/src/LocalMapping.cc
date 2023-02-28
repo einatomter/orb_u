@@ -184,20 +184,16 @@ void LocalMapping::InitializeScaleUW()
 
         cout << "Performing global BA" << endl;
         Optimizer::UWBA(mpAtlas->GetCurrentMap(), mScale, rotation, 30, NULL, mpCurrentKeyFrame->mnId, true, false, true);
-        cout << "scale: " << mScale << endl;
-        cout << "recovered rotation matrix:" << endl;
-        cout << rotation << endl;
 
         Sophus::SE3f Tgw(rotation.transpose().cast<float>(),Eigen::Vector3f::Zero());
         mpAtlas->GetCurrentMap()->ApplyScaledRotation(Tgw, mScale, true);
 
+        mScale = 1;
         rotation = Eigen::Matrix3d::Identity();
 
-        Optimizer::ScaleOptimizationUW(mpAtlas->GetCurrentMap(), mScale, rotation, 0.1, 10);
-        cout << "Final scale: " << mScale << endl;
+        Optimizer::ScaleOptimizationUW(mpAtlas->GetCurrentMap(), mScale, rotation, 0.1, 5);
 
         Sophus::SE3f Tgw2(Eigen::Matrix3f::Identity(),Eigen::Vector3f::Zero());
-
         mpAtlas->GetCurrentMap()->ApplyScaledRotation(Tgw2, mScale, true);
 
         cout << "Global BA end" << endl;
