@@ -49,7 +49,7 @@ namespace ORB_SLAM3
 // UW
 // -------------------------------------------------------------------------------------------
 
-bool Optimizer::ScaleOptimizationUW(Map *pMap, double &scale, Eigen::Matrix3d &Rwg, float minDepthDistance, int minKF, bool setRwgFixed, bool setScaleFixed)
+bool Optimizer::ScaleOptimizationUW(Map *pMap, double &scale, Eigen::Matrix3d &Rwg, float minDepthDistance, int minKFs, bool setRwgFixed, bool setScaleFixed)
 {
     int its = 10;
     long unsigned int maxKFid = pMap->GetMaxKFid();
@@ -103,7 +103,7 @@ bool Optimizer::ScaleOptimizationUW(Map *pMap, double &scale, Eigen::Matrix3d &R
         N++;
     }
 
-    if (N < minKF)
+    if (N < minKFs)
     {
         // std::cout << "Too few valid keyframes to perform scale optimization" << std::endl;
         return false;   
@@ -159,7 +159,7 @@ bool Optimizer::ScaleOptimizationUW(Map *pMap, double &scale, Eigen::Matrix3d &R
     return true;
 }
 
-bool Optimizer::UWBA(Map* pMap, double &scale, Eigen::Matrix3d &Rwg, int nIterations, bool* pbStopFlag, const unsigned long nLoopKF, const bool bRobust, bool setRwgFixed, bool setScaleFixed)
+bool Optimizer::UWBA(Map* pMap, double &scale, Eigen::Matrix3d &Rwg, int nIterations, bool* pbStopFlag, const unsigned long nLoopKF, const bool bRobust, bool setRwgFixed, bool setScaleFixed, int minKFs, double minDepthDistance)
 {
     vector<KeyFrame*> vpKFs = pMap->GetAllKeyFrames();
     vector<MapPoint*> vpMP = pMap->GetAllMapPoints();
@@ -247,13 +247,25 @@ bool Optimizer::UWBA(Map* pMap, double &scale, Eigen::Matrix3d &Rwg, int nIterat
     const float thHuber2D = sqrt(5.99);
     const float thHuber3D = sqrt(7.815);
 
-
+    int uwEdges = 0;
     // set UW edges
     for(size_t i=0; i<vpKFs.size(); i++)
     {
         KeyFrame* pKF = vpKFs[i];
         if(pKF->isBad())
             continue;
+
+        Sophus::SE3<float> Tcw = pKF->GetPose();
+        // recover element (0,0) of matrix after vector multiplication
+        double depthEstimate = (Tcw.translation().cast<double>().transpose() * pKF->mPressureMeas.depthAxis)(0,0);
+        double depthMeasured = pKF->mPressureMeas.relativeDepthHeight();
+
+        // Do not include values that are too low
+        if(fabs(depthEstimate) < minDepthDistance || fabs(depthMeasured) < minDepthDistance) 
+            continue;
+        // Do not include values if signs are inverted
+        // if (signbit(depthEstimate) != signbit(depthMeasured))
+        //     continue;
 
         EdgeUWDepthGS* eDepth = new EdgeUWDepthGS;
         eDepth->setVertex(0, dynamic_cast<g2o::OptimizableGraph::Vertex*>(optimizer.vertex(pKF->mnId)));
@@ -265,7 +277,12 @@ bool Optimizer::UWBA(Map* pMap, double &scale, Eigen::Matrix3d &Rwg, int nIterat
         Eigen::Matrix<double, 1, 1> depthNoise(UW::DEPTH_NOISE);
         eDepth->setInformation(depthNoise.inverse());
         optimizer.addEdge(eDepth);
+
+        uwEdges++;
     }
+
+    if (uwEdges < minKFs)
+        return false;
 
     // Set MapPoint vertices
     for(size_t i=0; i<vpMP.size(); i++)

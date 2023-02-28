@@ -48,10 +48,10 @@ class Optimizer
 // UW
 public:
     bool static ScaleOptimizationUW(Map *pMap, double &scale, Eigen::Matrix3d &Rwg, 
-                                    float minDepthDistance = 0.05, int minKF = 10, 
+                                    float minDepthDistance = 0.05, int minKFs = 10, 
                                     bool setRwgFixed = true, bool setScaleFixed = false);
     bool static UWBA(Map* pMap, double &scale, Eigen::Matrix3d &Rwg, int nIterations=5, bool* pbStopFlag=NULL, 
-                     const unsigned long nLoopKF=0, const bool bRobust=true, bool setRwgFixed = false, bool setScaleFixed = false);
+                     const unsigned long nLoopKF=0, const bool bRobust=true, bool setRwgFixed = false, bool setScaleFixed = false, int minKFs = 15, double minDepthDistance = 0.0);
 // UW END
 public:
 
