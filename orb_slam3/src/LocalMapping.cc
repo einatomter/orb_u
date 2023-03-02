@@ -120,21 +120,21 @@ void LocalMapping::InitializeUW()
 
     bInitializing = true;
 
-    bool initOK = false;
+    bool optOK = false;
     double scale = 1.0;
     Eigen::Matrix3d rotation = Eigen::Matrix3d::Identity();
 
-    // initOK = CalculateScaleUW(scale);    // old initialization
+    // optOK = CalculateScaleUW(scale);    // old initialization
 
     if (first)
     {
         cout << "UW init: Calculating initial scale and rotation" << endl;
-        initOK = Optimizer::UWBA(mpAtlas->GetCurrentMap(), scale, rotation, 20, NULL, mpCurrentKeyFrame->mnId, true, false, false);
+        optOK = Optimizer::UWBA(mpAtlas->GetCurrentMap(), scale, rotation, 20, NULL, mpCurrentKeyFrame->mnId, true, false, false, nMinKF);
     }
     else
-        initOK = Optimizer::UWBA(mpAtlas->GetCurrentMap(), scale, rotation, 10, NULL, mpCurrentKeyFrame->mnId, true, true, false, 15, 0.01);
+        optOK = Optimizer::UWBA(mpAtlas->GetCurrentMap(), scale, rotation, 10, NULL, mpCurrentKeyFrame->mnId, true, true, false, 15, 0.015);
 
-    if(!initOK)
+    if(!optOK)
     {
         // cout << "Too few valid keyframes" << endl;
         return;
@@ -184,7 +184,12 @@ void LocalMapping::InitializeUW()
     rotation = Eigen::Matrix3d::Identity();
 
     // scale
-    Optimizer::ScaleOptimizationUW(mpAtlas->GetCurrentMap(), scale, rotation, 0.1, 3);
+    optOK = Optimizer::ScaleOptimizationUW(mpAtlas->GetCurrentMap(), scale, rotation, 0.1, 3);
+    if (!optOK)
+    {
+        Optimizer::ScaleOptimizationUW(mpAtlas->GetCurrentMap(), scale, rotation, 0.05, 3);
+    }
+
     {
         unique_lock<mutex> lock(mpAtlas->GetCurrentMap()->mMutexMapUpdate);
         Sophus::SE3f Tgw(Eigen::Matrix3f::Identity(),Eigen::Vector3f::Zero());

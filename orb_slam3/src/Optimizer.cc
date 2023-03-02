@@ -84,7 +84,7 @@ bool Optimizer::ScaleOptimizationUW(Map *pMap, double &scale, Eigen::Matrix3d &R
         // Do not include values that are too low
         if (!setScaleFixed)
         {
-            if(fabs(depthEstimate) < minDepthDistance || fabs(depthMeasured) < minDepthDistance) 
+            if(fabs(depthMeasured) < minDepthDistance) 
                 continue;
             // Do not include values if signs are inverted
             if (signbit(depthEstimate) != signbit(depthMeasured))
@@ -261,7 +261,7 @@ bool Optimizer::UWBA(Map* pMap, double &scale, Eigen::Matrix3d &Rwg, int nIterat
         double depthMeasured = pKF->mPressureMeas.relativeDepthHeight();
 
         // Do not include values that are too low
-        if(fabs(depthEstimate) < minDepthDistance || fabs(depthMeasured) < minDepthDistance) 
+        if(fabs(depthMeasured) < minDepthDistance) 
             continue;
         // Do not include values if signs are inverted
         // if (signbit(depthEstimate) != signbit(depthMeasured))
