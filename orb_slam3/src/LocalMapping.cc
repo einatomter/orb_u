@@ -163,7 +163,7 @@ void LocalMapping::InitializeUW()
             unique_lock<mutex> lock(mpAtlas->GetCurrentMap()->mMutexMapUpdate);
             Sophus::SE3f Tgw(rotation.transpose().cast<float>(),Eigen::Vector3f::Zero());
             mpAtlas->GetCurrentMap()->ApplyScaledRotation(Tgw,scale,true);
-            mpTracker->UpdateFrameUW(scale, mpCurrentKeyFrame);
+            // mpTracker->UpdateFrameUW(scale, mpCurrentKeyFrame);  // TODO: remove function, doesn't seem to do anything
             first = false;
         }
 
@@ -194,7 +194,7 @@ void LocalMapping::InitializeUW()
         unique_lock<mutex> lock(mpAtlas->GetCurrentMap()->mMutexMapUpdate);
         Sophus::SE3f Tgw(Eigen::Matrix3f::Identity(),Eigen::Vector3f::Zero());
         mpAtlas->GetCurrentMap()->ApplyScaledRotation(Tgw,scale,true);
-        mpTracker->UpdateFrameUW(scale, mpCurrentKeyFrame);
+        // mpTracker->UpdateFrameUW(scale, mpCurrentKeyFrame);
     }
 
     cout << "UW init: Initialization done!" << endl;
