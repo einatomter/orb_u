@@ -3100,6 +3100,7 @@ bool Tracking::TrackWithMotionModel()
     // Create "visual odometry" points if in Localization Mode
     UpdateLastFrame();
 
+    // if (!mpAtlas->GetCurrentMap()->GetIniertialBA2() && (mCurrentFrame.mnId>mnLastRelocFrameId+mnFramesToResetIMU))
     if (mpAtlas->isImuInitialized() && (mCurrentFrame.mnId>mnLastRelocFrameId+mnFramesToResetIMU))
     {
         // Predict state with IMU if it is initialized and it doesnt need reset
@@ -3211,6 +3212,7 @@ bool Tracking::TrackLocalMap()
         }
 
     int inliers;
+    // if (!mpAtlas->GetCurrentMap()->GetIniertialBA2())
     if (!mpAtlas->isImuInitialized())
     {
         if(mpAtlas->GetCurrentMap()->isScaleUWInitialized() && mbIsUW)  // UW
@@ -3236,12 +3238,12 @@ bool Tracking::TrackLocalMap()
             if(!mbMapUpdated) //  && (mnMatchesInliers>30))
             {
                 Verbose::PrintMess("TLM: PoseInertialOptimizationLastFrame ", Verbose::VERBOSITY_DEBUG);
-                inliers = Optimizer::PoseInertialOptimizationLastFrame(&mCurrentFrame); // , !mpLastKeyFrame->GetMap()->GetIniertialBA1());
+                inliers = Optimizer::PoseInertialOptimizationLastFrame(&mCurrentFrame, false, mbIsUW); // , !mpLastKeyFrame->GetMap()->GetIniertialBA1());
             }
             else
             {
                 Verbose::PrintMess("TLM: PoseInertialOptimizationLastKeyFrame ", Verbose::VERBOSITY_DEBUG);
-                inliers = Optimizer::PoseInertialOptimizationLastKeyFrame(&mCurrentFrame); // , !mpLastKeyFrame->GetMap()->GetIniertialBA1());
+                inliers = Optimizer::PoseInertialOptimizationLastKeyFrame(&mCurrentFrame, false, mbIsUW); // , !mpLastKeyFrame->GetMap()->GetIniertialBA1());
             }
         }
     }
@@ -3290,7 +3292,7 @@ bool Tracking::TrackLocalMap()
 
     if (mSensor == System::IMU_MONOCULAR)
     {
-        if((mnMatchesInliers<15 && mpAtlas->isImuInitialized())||(mnMatchesInliers<50 && !mpAtlas->isImuInitialized()))
+        if((mnMatchesInliers<15 && mpAtlas->isImuInitialized())||(mnMatchesInliers<30 && !mpAtlas->isImuInitialized()))
         {
             return false;
         }
