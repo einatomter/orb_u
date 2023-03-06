@@ -234,9 +234,9 @@ bool LocalMapping::InitializeVIP(float priorG, float priorA, bool bFIBA, int nMi
     if(vpKF.size()<nMinKF || nValidKFs < nMinKF)
         return false;
 
-    mFirstTs=vpKF.front()->mTimeStamp;
-    if(mpCurrentKeyFrame->mTimeStamp-mFirstTs<minTime)
-        return false;
+    // mFirstTs=vpKF.front()->mTimeStamp;
+    // if(mpCurrentKeyFrame->mTimeStamp-mFirstTs<minTime)
+    //     return false;
 
     
 
@@ -570,23 +570,20 @@ void LocalMapping::Run()
                 {
                     if(mbInertial && mpCurrentKeyFrame->GetMap()->isImuInitialized())   // Inertial & initialized
                     {
-                        if (!mbIsUW)    // Inertial only
-                        {
                         float dist = (mpCurrentKeyFrame->mPrevKF->GetCameraCenter() - mpCurrentKeyFrame->GetCameraCenter()).norm() +
                                 (mpCurrentKeyFrame->mPrevKF->mPrevKF->GetCameraCenter() - mpCurrentKeyFrame->mPrevKF->GetCameraCenter()).norm();
 
-                            if(dist>0.05)
-                                mTinit += mpCurrentKeyFrame->mTimeStamp - mpCurrentKeyFrame->mPrevKF->mTimeStamp;
-                            if(!mpCurrentKeyFrame->GetMap()->GetIniertialBA2())
+                        if((dist>0.05 && !mbIsUW) || (dist > 0.01 && mbIsUW))
+                            mTinit += mpCurrentKeyFrame->mTimeStamp - mpCurrentKeyFrame->mPrevKF->mTimeStamp;
+                        if(!mpCurrentKeyFrame->GetMap()->GetIniertialBA2() && !mbIsUW)
+                        {
+                            if((mTinit<10.f) && (dist<0.005))   // TODO: make distance yaml parameter to more easily change value
                             {
-                                if((mTinit<10.f) && (dist<0.005))   // TODO: make distance yaml parameter to more easily change value
-                                {
-                                    cout << "Not enough motion for initializing. Reseting..." << endl;
-                                    unique_lock<mutex> lock(mMutexReset);
-                                    mbResetRequestedActiveMap = true;
-                                    mpMapToReset = mpCurrentKeyFrame->GetMap();
-                                    mbBadImu = true;
-                                }
+                                cout << "Not enough motion for initializing. Reseting..." << endl;
+                                unique_lock<mutex> lock(mMutexReset);
+                                mbResetRequestedActiveMap = true;
+                                mpMapToReset = mpCurrentKeyFrame->GetMap();
+                                mbBadImu = true;
                             }
                         }
 
@@ -597,7 +594,7 @@ void LocalMapping::Run()
                         Optimizer::LocalBundleAdjustment(mpCurrentKeyFrame,&mbAbortBA, mpCurrentKeyFrame->GetMap(),num_FixedKF_BA,num_OptKF_BA,num_MPs_BA,num_edges_BA, true);
                     else
                     {
-                        if (!(mbInertial && mbIsUW)) // Weird scaling issues when IMU is enabled, currently disabled in VIP mode
+                        // if (!(mbInertial && mbIsUW)) // Weird scaling issues when IMU is enabled, currently disabled in VIP mode
                             Optimizer::LocalBundleAdjustment(mpCurrentKeyFrame,&mbAbortBA, mpCurrentKeyFrame->GetMap(),num_FixedKF_BA,num_OptKF_BA,num_MPs_BA,num_edges_BA);
                     }
 
@@ -649,7 +646,7 @@ void LocalMapping::Run()
                 // Initialize VIP
                 if(!mpCurrentKeyFrame->GetMap()->isImuInitialized() && mbInertial && mbIsUW)
                 {
-                    InitializeVIP(1e2, 1e10, true, 15, 0.01);
+                    InitializeVIP(1e2, 1e10, true, 10, 0.0);
                 }
 
 
@@ -709,13 +706,13 @@ void LocalMapping::Run()
                     }
                 }
 
-                // VIPBA, scale refinement
+                // VIP-BA, scale refinement
                 if (mbInertial && mbIsUW)
                 {
                     if(mpCurrentKeyFrame->GetMap()->isImuInitialized() && mpTracker->mState==Tracking::OK) // Enter here everytime local-mapping is called
                     {
                         if(!mpCurrentKeyFrame->GetMap()->GetIniertialBA1()){
-                            bool bOK = InitializeVIP(1.f, 1e5, true, 25, 0.01);
+                            bool bOK = InitializeVIP(1.f, 10.f, true, 25, 0.01);
                             if (bOK)
                             {
                                 mpCurrentKeyFrame->GetMap()->SetIniertialBA1();
@@ -723,7 +720,7 @@ void LocalMapping::Run()
                             }
                         }
                         else if(!mpCurrentKeyFrame->GetMap()->GetIniertialBA2()){
-                            bool bOK = InitializeVIP(0.f, 0.f, true, 30, 0.02);
+                            bool bOK = InitializeVIP(0.f, 0.f, true, 40, 0.02);
                             if (bOK)
                             {
                                 mpCurrentKeyFrame->GetMap()->SetIniertialBA2();
@@ -731,17 +728,20 @@ void LocalMapping::Run()
                             }
                         }
 
-                        // scale refinement
-                        if (((mpAtlas->KeyFramesInMap())<=200) &&
-                                ((mTinit>25.0f && mTinit<25.5f)||
-                                (mTinit>35.0f && mTinit<35.5f)||
-                                (mTinit>45.0f && mTinit<45.5f)||
-                                (mTinit>55.0f && mTinit<55.5f)||
-                                (mTinit>65.0f && mTinit<65.5f)||
-                                (mTinit>75.0f && mTinit<75.5f))){
-                            if (mbMonocular)
-                                ScaleRefinement();
-                        }
+                        // // scale refinement
+                        // if (((mpAtlas->KeyFramesInMap())<=200) &&
+                        //         ((mTinit>25.0f && mTinit<25.5f)||
+                        //         (mTinit>35.0f && mTinit<35.5f)||
+                        //         (mTinit>45.0f && mTinit<45.5f)||
+                        //         (mTinit>55.0f && mTinit<55.5f)||
+                        //         (mTinit>65.0f && mTinit<65.5f)||
+                        //         (mTinit>75.0f && mTinit<75.5f))){
+                        //     if (mbMonocular)
+                        //     {
+                        //         cout << "Doing scale refinement" << endl;
+                        //         ScaleRefinement();
+                        //     }
+                        // }
                     }
                 }
             }
@@ -1965,7 +1965,7 @@ void LocalMapping::ScaleRefinement()
     mScale=1.0;
 
     std::chrono::steady_clock::time_point t0 = std::chrono::steady_clock::now();
-    Optimizer::InertialOptimization(mpAtlas->GetCurrentMap(), mRwg, mScale);
+    Optimizer::InertialOptimization(mpAtlas->GetCurrentMap(), mRwg, mScale, mbIsUW);
     std::chrono::steady_clock::time_point t1 = std::chrono::steady_clock::now();
 
     if (mScale<1e-1) // 1e-1

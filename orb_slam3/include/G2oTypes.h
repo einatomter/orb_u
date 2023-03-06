@@ -881,6 +881,53 @@ private:
     Eigen::Vector3d _depthAxis;
 };
 
+
+
+class EdgeUWDepth2: public g2o::BaseBinaryEdge<2, Eigen::Vector2d, g2o::VertexSE3Expmap, g2o::VertexSE3Expmap>
+{
+public:
+    EIGEN_MAKE_ALIGNED_OPERATOR_NEW
+    EdgeUWDepth2(){}
+
+    // Set camera orientation relative to depth axis
+    void setDepthAxis(Eigen::Vector3d& input){
+        _depthAxis = input;
+    }
+
+    void computeError(){
+        const g2o::VertexSE3Expmap* VP1 = static_cast<const g2o::VertexSE3Expmap*>(_vertices[0]);
+        const g2o::VertexSE3Expmap* VP2 = static_cast<const g2o::VertexSE3Expmap*>(_vertices[1]);
+        // VPose->estimate().rotation().toRotationMatrix();
+        Eigen::Vector3d translation1(VP1->estimate().translation());
+        Eigen::Vector3d translation2(VP2->estimate().translation());
+
+        // TODO: use matrix.value() to clean up code
+        
+        double estRelative = ((translation2 - translation1).transpose() * _depthAxis).value();
+        double estAbsolute = (translation2.transpose() * _depthAxis).value();
+
+        double er = _measurement.x() - estRelative;
+        double ea = _measurement.y() - estAbsolute;
+
+        _error << er, ea; 
+    }
+
+    // redefined to 1D definition ((x-mu)^2/sigma^2)
+    // virtual double chi2() const{
+    //     // information is already inverse and can therefore be multiplied directly
+    //     // std::cout << "chi2 depth: " << pow(_error(0,0)*information()(0,0), 2) << std::endl;
+    //     return pow(_error(0,0)*information()(0,0), 2);
+    // }
+
+    virtual bool read(std::istream& is){return false;}
+    virtual bool write(std::ostream& os) const{return false;}
+
+private:
+    Eigen::Vector3d _depthAxis;
+};
+
+
+
 class EdgeUWDepthGS: public g2o::BaseMultiEdge<1, double>
 {
 public:
