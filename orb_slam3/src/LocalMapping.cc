@@ -594,7 +594,7 @@ void LocalMapping::Run()
                         Optimizer::LocalBundleAdjustment(mpCurrentKeyFrame,&mbAbortBA, mpCurrentKeyFrame->GetMap(),num_FixedKF_BA,num_OptKF_BA,num_MPs_BA,num_edges_BA, true);
                     else
                     {
-                        // if (!(mbInertial && mbIsUW)) // Weird scaling issues when IMU is enabled, currently disabled in VIP mode
+                        if (!(mbInertial && mbIsUW)) // Weird scaling issues when IMU is enabled, currently disabled in VIP mode
                             Optimizer::LocalBundleAdjustment(mpCurrentKeyFrame,&mbAbortBA, mpCurrentKeyFrame->GetMap(),num_FixedKF_BA,num_OptKF_BA,num_MPs_BA,num_edges_BA);
                     }
 
@@ -646,7 +646,8 @@ void LocalMapping::Run()
                 // Initialize VIP
                 if(!mpCurrentKeyFrame->GetMap()->isImuInitialized() && mbInertial && mbIsUW)
                 {
-                    InitializeVIP(1e2, 1e10, true, 10, 0.0);
+                    // InitializeVIP(1e1, 1e3, true, 20, 0.0);
+                    InitializeVIP(1e1, 1e3, true, 20, 0.0);
                 }
 
 
@@ -712,7 +713,7 @@ void LocalMapping::Run()
                     if(mpCurrentKeyFrame->GetMap()->isImuInitialized() && mpTracker->mState==Tracking::OK) // Enter here everytime local-mapping is called
                     {
                         if(!mpCurrentKeyFrame->GetMap()->GetIniertialBA1()){
-                            bool bOK = InitializeVIP(1.f, 10.f, true, 25, 0.01);
+                            bool bOK = InitializeVIP(0.f, 0.f, true, 25, 0.01);
                             if (bOK)
                             {
                                 mpCurrentKeyFrame->GetMap()->SetIniertialBA1();
