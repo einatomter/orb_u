@@ -684,7 +684,7 @@ void Optimizer::VIPOptimizationUW(Map *pMap, Eigen::Matrix3d &Rwg, double &scale
             optimizer.addEdge(ei);
 
             // Depth measurements
-            double minDepthDistance = 0.00;
+            double minDepthDistance = 0.0;
 
             double depthMeasured = pKFi->mPressureMeas.relativeDepthHeight();
             // Do not include values that are too low
@@ -943,8 +943,8 @@ void Optimizer::FullVIPBA(Map *pMap, int its, const bool bFixLocal, const long u
                 eDepth->setDepthAxis(pKFi->mPressureMeas.depthAxis);
                 Eigen::Matrix2d depthNoise;
                 depthNoise.diagonal() << 2 * UW::DEPTH_NOISE, UW::DEPTH_NOISE;
-                // eDepth->setInformation(depthNoise.inverse());
-                eDepth->setInformation(depthNoise.inverse() * 1e1);
+                eDepth->setInformation(depthNoise.inverse());
+                // eDepth->setInformation(depthNoise.inverse() * 1e1);
                 optimizer.addEdge(eDepth);
             }
             else
@@ -2380,8 +2380,9 @@ void Optimizer::LocalBundleAdjustment(KeyFrame *pKF, bool* pbStopFlag, Map* pMap
     g2o::BlockSolver_6_3 * solver_ptr = new g2o::BlockSolver_6_3(linearSolver);
 
     g2o::OptimizationAlgorithmLevenberg* solver = new g2o::OptimizationAlgorithmLevenberg(solver_ptr);
-    if (pMap->IsInertial())
-        solver->setUserLambdaInit(100.0);
+    // TODO: Add IsUW to map, REENABLE THIS WHEN DONE
+    // if (pMap->IsInertial())
+    //     solver->setUserLambdaInit(100.0);
 
     optimizer.setAlgorithm(solver);
     optimizer.setVerbose(false);
@@ -3873,8 +3874,8 @@ void Optimizer::LocalInertialBA(KeyFrame *pKF, bool *pbStopFlag, Map *pMap, int&
                 eDepth->setDepthAxis(pKFi->mPressureMeas.depthAxis);
                 Eigen::Matrix2d depthNoise;
                 depthNoise.diagonal() << 2 * UW::DEPTH_NOISE, UW::DEPTH_NOISE;
-                // eDepth->setInformation(depthNoise.inverse());
-                eDepth->setInformation(depthNoise.inverse() * 1e1);
+                eDepth->setInformation(depthNoise.inverse());
+                // eDepth->setInformation(depthNoise.inverse() * 1e1);
                 optimizer.addEdge(eDepth);
             }
         }
@@ -5954,8 +5955,8 @@ int Optimizer::PoseInertialOptimizationLastKeyFrame(Frame *pFrame, bool bRecInit
         eDepth->setDepthAxis(pFrame->mPressureMeas.depthAxis);
         Eigen::Matrix2d depthNoise;
         depthNoise.diagonal() << 2 * UW::DEPTH_NOISE, UW::DEPTH_NOISE;
-        // eDepth->setInformation(depthNoise.inverse());
-        eDepth->setInformation(depthNoise.inverse() * 1e1);
+        eDepth->setInformation(depthNoise.inverse());
+        // eDepth->setInformation(depthNoise.inverse() * 1e1);
         optimizer.addEdge(eDepth);
     }
 
@@ -6374,8 +6375,8 @@ int Optimizer::PoseInertialOptimizationLastFrame(Frame *pFrame, bool bRecInit, b
         eDepth->setDepthAxis(pFrame->mPressureMeas.depthAxis);
         Eigen::Matrix2d depthNoise;
         depthNoise.diagonal() << 2 * UW::DEPTH_NOISE, UW::DEPTH_NOISE;
-        // eDepth->setInformation(depthNoise.inverse());
-        eDepth->setInformation(depthNoise.inverse() * 1e1);
+        eDepth->setInformation(depthNoise.inverse());
+        // eDepth->setInformation(depthNoise.inverse() * 1e1);
         optimizer.addEdge(eDepth);
     }
 

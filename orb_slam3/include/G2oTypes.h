@@ -909,7 +909,7 @@ public:
         double er = _measurement.x() - estRelative;
         double ea = _measurement.y() - estAbsolute;
 
-        _error << er, ea; 
+        _error << er, 0; 
     }
 
     // redefined to 1D definition ((x-mu)^2/sigma^2)

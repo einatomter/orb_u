@@ -2198,6 +2198,7 @@ void Tracking::Track()
 
                 if (!bOK)
                 {
+                    // VIP: could be interesting to look at
                     if ( mCurrentFrame.mnId<=(mnLastRelocFrameId+mnFramesToResetIMU) &&
                          (mSensor==System::IMU_MONOCULAR || mSensor==System::IMU_STEREO || mSensor == System::IMU_RGBD))
                     {
@@ -2240,7 +2241,7 @@ void Tracking::Track()
                     else
                     {
                         // Relocalization
-                        bOK = Relocalization();
+                        bOK = Relocalization(); // VIP, maybe interesting but should probably leave it to only camera
                         //std::cout << "mCurrentFrame.mTimeStamp:" << to_string(mCurrentFrame.mTimeStamp) << std::endl;
                         //std::cout << "mTimeStampLost:" << to_string(mTimeStampLost) << std::endl;
                         if(mCurrentFrame.mTimeStamp-mTimeStampLost>3.0f && !bOK)
@@ -2420,7 +2421,8 @@ void Tracking::Track()
             {
                 if(mCurrentFrame.mnId==(mnLastRelocFrameId+mnFramesToResetIMU))
                 {
-                    cout << "RESETING FRAME!!!" << endl;
+                    // UW, reset frame IMU not implemented by original authors so suppressing warnings
+                    // cout << "RESETING FRAME!!!" << endl;
                     ResetFrameIMU();
                 }
                 else if(mCurrentFrame.mnId>(mnLastRelocFrameId+30))
@@ -3319,15 +3321,15 @@ bool Tracking::TrackLocalMap()
 
 bool Tracking::NeedNewKeyFrame()
 {
-    if((mSensor == System::IMU_MONOCULAR || mSensor == System::IMU_STEREO || mSensor == System::IMU_RGBD) && !mpAtlas->GetCurrentMap()->isImuInitialized())
-    {
-        if (mSensor == System::IMU_MONOCULAR && (mCurrentFrame.mTimeStamp-mpLastKeyFrame->mTimeStamp)>=0.25)
-            return true;
-        else if ((mSensor == System::IMU_STEREO || mSensor == System::IMU_RGBD) && (mCurrentFrame.mTimeStamp-mpLastKeyFrame->mTimeStamp)>=0.25)
-            return true;
-        else
-            return false;
-    }
+    // if((mSensor == System::IMU_MONOCULAR || mSensor == System::IMU_STEREO || mSensor == System::IMU_RGBD) && !mpAtlas->GetCurrentMap()->isImuInitialized())
+    // {
+    //     if (mSensor == System::IMU_MONOCULAR && (mCurrentFrame.mTimeStamp-mpLastKeyFrame->mTimeStamp)>=0.25)
+    //         return true;
+    //     else if ((mSensor == System::IMU_STEREO || mSensor == System::IMU_RGBD) && (mCurrentFrame.mTimeStamp-mpLastKeyFrame->mTimeStamp)>=0.25)
+    //         return true;
+    //     else
+    //         return false;
+    // }
 
     if(mbOnlyTracking)
         return false;
