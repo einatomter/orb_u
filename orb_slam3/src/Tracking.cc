@@ -2821,7 +2821,7 @@ void Tracking::CreateInitialMapMonocular()
 
     float medianDepth = pKFini->ComputeSceneMedianDepth(2);
     float invMedianDepth;
-    if(mSensor == System::IMU_MONOCULAR)
+    if(mSensor == System::IMU_MONOCULAR && !mbIsUW)
         invMedianDepth = 4.0f/medianDepth; // 4.0f
     else
         invMedianDepth = 1.0f/medianDepth;
@@ -3649,17 +3649,17 @@ void Tracking::SearchLocalPoints()
         int th = 1;
         if(mSensor==System::RGBD || mSensor==System::IMU_RGBD)
             th=3;
-        if(mpAtlas->isImuInitialized())
-        {
-            if(mpAtlas->GetCurrentMap()->GetIniertialBA2())
-                th=2;
-            else
-                th=6;
-        }
-        else if(!mpAtlas->isImuInitialized() && (mSensor==System::IMU_MONOCULAR || mSensor==System::IMU_STEREO || mSensor == System::IMU_RGBD))
-        {
-            th=10;
-        }
+        // if(mpAtlas->isImuInitialized())
+        // {
+        //     if(mpAtlas->GetCurrentMap()->GetIniertialBA2())
+        //         th=2;
+        //     else
+        //         th=6;
+        // }
+        // else if(!mpAtlas->isImuInitialized() && (mSensor==System::IMU_MONOCULAR || mSensor==System::IMU_STEREO || mSensor == System::IMU_RGBD))
+        // {
+        //     th=10;
+        // }
 
         // If the camera has been relocalised recently, perform a coarser search
         if(mCurrentFrame.mnId<mnLastRelocFrameId+2)

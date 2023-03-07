@@ -899,18 +899,18 @@ void LocalMapping::CreateNewMapPoints()
         nn=30;
     vector<KeyFrame*> vpNeighKFs = mpCurrentKeyFrame->GetBestCovisibilityKeyFrames(nn);
 
-    // if (mbInertial)
-    // {
-    //     KeyFrame* pKF = mpCurrentKeyFrame;
-    //     int count=0;
-    //     while((vpNeighKFs.size()<=nn)&&(pKF->mPrevKF)&&(count++<nn))
-    //     {
-    //         vector<KeyFrame*>::iterator it = std::find(vpNeighKFs.begin(), vpNeighKFs.end(), pKF->mPrevKF);
-    //         if(it==vpNeighKFs.end())
-    //             vpNeighKFs.push_back(pKF->mPrevKF);
-    //         pKF = pKF->mPrevKF;
-    //     }
-    // }
+    if (mbInertial)
+    {
+        KeyFrame* pKF = mpCurrentKeyFrame;
+        int count=0;
+        while((vpNeighKFs.size()<=nn)&&(pKF->mPrevKF)&&(count++<nn))
+        {
+            vector<KeyFrame*>::iterator it = std::find(vpNeighKFs.begin(), vpNeighKFs.end(), pKF->mPrevKF);
+            if(it==vpNeighKFs.end())
+                vpNeighKFs.push_back(pKF->mPrevKF);
+            pKF = pKF->mPrevKF;
+        }
+    }
 
     float th = 0.6f;
 
@@ -1084,8 +1084,8 @@ void LocalMapping::CreateNewMapPoints()
 
             bool goodProj = false;
             bool bPointStereo = false;
-            if(cosParallaxRays<cosParallaxStereo && cosParallaxRays>0 && (bStereo1 || bStereo2 || cosParallaxRays<0.9998))
-                                                                        //   (cosParallaxRays<0.9996 && mbInertial) || (cosParallaxRays<0.9998 && !mbInertial)))
+            if(cosParallaxRays<cosParallaxStereo && cosParallaxRays>0 && (bStereo1 || bStereo2 ||
+                                                                          (cosParallaxRays<0.9996 && mbInertial) || (cosParallaxRays<0.9998 && !mbInertial)))
             {
                 goodProj = GeometricTools::Triangulate(xn1, xn2, eigTcw1, eigTcw2, x3D);
                 if(!goodProj)
@@ -1251,21 +1251,21 @@ void LocalMapping::SearchInNeighbors()
     }
 
     // Extend to temporal neighbors
-    // if(mbInertial)
-    // {
-    //     KeyFrame* pKFi = mpCurrentKeyFrame->mPrevKF;
-    //     while(vpTargetKFs.size()<20 && pKFi)
-    //     {
-    //         if(pKFi->isBad() || pKFi->mnFuseTargetForKF==mpCurrentKeyFrame->mnId)
-    //         {
-    //             pKFi = pKFi->mPrevKF;
-    //             continue;
-    //         }
-    //         vpTargetKFs.push_back(pKFi);
-    //         pKFi->mnFuseTargetForKF=mpCurrentKeyFrame->mnId;
-    //         pKFi = pKFi->mPrevKF;
-    //     }
-    // }
+    if(mbInertial)
+    {
+        KeyFrame* pKFi = mpCurrentKeyFrame->mPrevKF;
+        while(vpTargetKFs.size()<20 && pKFi)
+        {
+            if(pKFi->isBad() || pKFi->mnFuseTargetForKF==mpCurrentKeyFrame->mnId)
+            {
+                pKFi = pKFi->mPrevKF;
+                continue;
+            }
+            vpTargetKFs.push_back(pKFi);
+            pKFi->mnFuseTargetForKF=mpCurrentKeyFrame->mnId;
+            pKFi = pKFi->mPrevKF;
+        }
+    }
 
     // Search matches by projection from current KF in target KFs
     ORBmatcher matcher;
@@ -1427,17 +1427,17 @@ void LocalMapping::KeyFrameCulling()
 
     // Compoute last KF from optimizable window:
     unsigned int last_ID;
-    // if (mbInertial)
-    // {
-    //     int count = 0;
-    //     KeyFrame* aux_KF = mpCurrentKeyFrame;
-    //     while(count<Nd && aux_KF->mPrevKF)
-    //     {
-    //         aux_KF = aux_KF->mPrevKF;
-    //         count++;
-    //     }
-    //     last_ID = aux_KF->mnId;
-    // }
+    if (mbInertial)
+    {
+        int count = 0;
+        KeyFrame* aux_KF = mpCurrentKeyFrame;
+        while(count<Nd && aux_KF->mPrevKF)
+        {
+            aux_KF = aux_KF->mPrevKF;
+            count++;
+        }
+        last_ID = aux_KF->mnId;
+    }
 
 
 
@@ -1515,42 +1515,42 @@ void LocalMapping::KeyFrameCulling()
         if(nRedundantObservations>redundant_th*nMPs)
         {
             pKF->SetBadFlag();
-            // if (mbInertial)
-            // {
-            //     if (mpAtlas->KeyFramesInMap()<=Nd)
-            //         continue;
+            if (mbInertial)
+            {
+                if (mpAtlas->KeyFramesInMap()<=Nd)
+                    continue;
 
-            //     if(pKF->mnId>(mpCurrentKeyFrame->mnId-2))
-            //         continue;
+                if(pKF->mnId>(mpCurrentKeyFrame->mnId-2))
+                    continue;
 
-            //     if(pKF->mPrevKF && pKF->mNextKF)
-            //     {
-            //         const float t = pKF->mNextKF->mTimeStamp-pKF->mPrevKF->mTimeStamp;
+                if(pKF->mPrevKF && pKF->mNextKF)
+                {
+                    const float t = pKF->mNextKF->mTimeStamp-pKF->mPrevKF->mTimeStamp;
 
-            //         if((bInitImu && (pKF->mnId<last_ID) && t<3.) || (t<0.5))
-            //         {
-            //             pKF->mNextKF->mpImuPreintegrated->MergePrevious(pKF->mpImuPreintegrated);
-            //             pKF->mNextKF->mPrevKF = pKF->mPrevKF;
-            //             pKF->mPrevKF->mNextKF = pKF->mNextKF;
-            //             pKF->mNextKF = NULL;
-            //             pKF->mPrevKF = NULL;
-            //             pKF->SetBadFlag();
-            //         }
-            //         else if(!mpCurrentKeyFrame->GetMap()->GetIniertialBA2() && ((pKF->GetImuPosition()-pKF->mPrevKF->GetImuPosition()).norm()<0.02) && (t<3))
-            //         {
-            //             pKF->mNextKF->mpImuPreintegrated->MergePrevious(pKF->mpImuPreintegrated);
-            //             pKF->mNextKF->mPrevKF = pKF->mPrevKF;
-            //             pKF->mPrevKF->mNextKF = pKF->mNextKF;
-            //             pKF->mNextKF = NULL;
-            //             pKF->mPrevKF = NULL;
-            //             pKF->SetBadFlag();
-            //         }
-            //     }
-            // }
-            // else
-            // {
-            //     pKF->SetBadFlag();
-            // }
+                    if((bInitImu && (pKF->mnId<last_ID) && t<3.) || (t<0.5))
+                    {
+                        pKF->mNextKF->mpImuPreintegrated->MergePrevious(pKF->mpImuPreintegrated);
+                        pKF->mNextKF->mPrevKF = pKF->mPrevKF;
+                        pKF->mPrevKF->mNextKF = pKF->mNextKF;
+                        pKF->mNextKF = NULL;
+                        pKF->mPrevKF = NULL;
+                        pKF->SetBadFlag();
+                    }
+                    else if(!mpCurrentKeyFrame->GetMap()->GetIniertialBA2() && ((pKF->GetImuPosition()-pKF->mPrevKF->GetImuPosition()).norm()<0.02) && (t<3))
+                    {
+                        pKF->mNextKF->mpImuPreintegrated->MergePrevious(pKF->mpImuPreintegrated);
+                        pKF->mNextKF->mPrevKF = pKF->mPrevKF;
+                        pKF->mPrevKF->mNextKF = pKF->mNextKF;
+                        pKF->mNextKF = NULL;
+                        pKF->mPrevKF = NULL;
+                        pKF->SetBadFlag();
+                    }
+                }
+            }
+            else
+            {
+                pKF->SetBadFlag();
+            }
         }
         if((count > 20 && mbAbortBA) || count>100)
         {
