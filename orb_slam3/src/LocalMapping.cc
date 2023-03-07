@@ -643,8 +643,8 @@ void LocalMapping::Run()
                 // Initialize VIP
                 if(!mpCurrentKeyFrame->GetMap()->isImuInitialized() && mbInertial && mbIsUW)
                 {
-                    // InitializeVIP(1e1, 1e3, true, 20, 0.0);
-                    InitializeVIP(1e2, 1e5, true, 10, 0.0);
+                    InitializeVIP(1e1, 1e3, true, 20, 0.0);
+                    // InitializeVIP(1e2, 1e5, true, 10, 0.0);
                 }
 
 
