@@ -65,6 +65,7 @@ public:
     void MonocularInitializationUW();
 
     void UpdateFrameUW(const float s, KeyFrame* pCurrentKeyFrame);
+    bool UpdateImuBias();
 
     bool mbIsUW;
     float mInitDepth;

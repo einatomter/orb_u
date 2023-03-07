@@ -256,6 +256,32 @@ void Tracking::UpdateFrameUW(const float s, KeyFrame* pCurrentKeyFrame)
     }
 }
 
+bool Tracking::UpdateImuBias()
+{
+    if(!mCurrentFrame.mpPrevFrame)
+    {
+        Verbose::PrintMess("No last frame", Verbose::VERBOSITY_NORMAL);
+        return false;
+    }
+
+    if (mpAtlas->isImuInitialized() && (mCurrentFrame.mnId>mnLastRelocFrameId+mnFramesToResetIMU))
+    {
+        if(mbMapUpdated && mpLastKeyFrame)
+        {
+            mCurrentFrame.mImuBias = mpLastKeyFrame->GetImuBias();
+            mCurrentFrame.mPredBias = mCurrentFrame.mImuBias;
+            return true;
+        }
+        else if(!mbMapUpdated)
+        {
+            mCurrentFrame.mImuBias = mLastFrame.mImuBias;
+            mCurrentFrame.mPredBias = mCurrentFrame.mImuBias;
+            return true;
+        }
+    }
+}
+
+
 
 // -------------------------------------------------------------------------------------------
 // UW END
@@ -3102,8 +3128,14 @@ bool Tracking::TrackWithMotionModel()
     // Create "visual odometry" points if in Localization Mode
     UpdateLastFrame();
 
-    // if (!mpAtlas->GetCurrentMap()->GetIniertialBA2() && (mCurrentFrame.mnId>mnLastRelocFrameId+mnFramesToResetIMU))
-    if (mpAtlas->isImuInitialized() && (mCurrentFrame.mnId>mnLastRelocFrameId+mnFramesToResetIMU))
+    // VIP, only update bias and run pose optimization using only camera
+    // TODO: Check if frame to reset IMU is needed in statement
+    if (mpAtlas->isImuInitialized() && (mCurrentFrame.mnId>mnLastRelocFrameId+mnFramesToResetIMU) && mbIsUW)
+    {
+        UpdateImuBias();
+        mCurrentFrame.SetPose(mVelocity * mLastFrame.GetPose());
+    }
+    else if (mpAtlas->isImuInitialized() && (mCurrentFrame.mnId>mnLastRelocFrameId+mnFramesToResetIMU))
     {
         // Predict state with IMU if it is initialized and it doesnt need reset
         PredictStateIMU();
@@ -3113,9 +3145,6 @@ bool Tracking::TrackWithMotionModel()
     {
         mCurrentFrame.SetPose(mVelocity * mLastFrame.GetPose());
     }
-
-
-
 
     fill(mCurrentFrame.mvpMapPoints.begin(),mCurrentFrame.mvpMapPoints.end(),static_cast<MapPoint*>(NULL));
 
@@ -3150,7 +3179,7 @@ bool Tracking::TrackWithMotionModel()
     }
 
     // Optimize frame pose with all matches
-    if(mpAtlas->GetCurrentMap()->isScaleUWInitialized() && mbIsUW)  // UW
+    if((mpAtlas->GetCurrentMap()->isScaleUWInitialized() && mbIsUW) || (mpAtlas->isImuInitialized() && mbIsUW))  // UW
         Optimizer::PoseOptimization(&mCurrentFrame, true);
     else
         Optimizer::PoseOptimization(&mCurrentFrame);
@@ -3321,15 +3350,15 @@ bool Tracking::TrackLocalMap()
 
 bool Tracking::NeedNewKeyFrame()
 {
-    // if((mSensor == System::IMU_MONOCULAR || mSensor == System::IMU_STEREO || mSensor == System::IMU_RGBD) && !mpAtlas->GetCurrentMap()->isImuInitialized())
-    // {
-    //     if (mSensor == System::IMU_MONOCULAR && (mCurrentFrame.mTimeStamp-mpLastKeyFrame->mTimeStamp)>=0.25)
-    //         return true;
-    //     else if ((mSensor == System::IMU_STEREO || mSensor == System::IMU_RGBD) && (mCurrentFrame.mTimeStamp-mpLastKeyFrame->mTimeStamp)>=0.25)
-    //         return true;
-    //     else
-    //         return false;
-    // }
+    if((mSensor == System::IMU_MONOCULAR || mSensor == System::IMU_STEREO || mSensor == System::IMU_RGBD) && !mpAtlas->GetCurrentMap()->isImuInitialized())
+    {
+        if (mSensor == System::IMU_MONOCULAR && (mCurrentFrame.mTimeStamp-mpLastKeyFrame->mTimeStamp)>=0.25)
+            return true;
+        else if ((mSensor == System::IMU_STEREO || mSensor == System::IMU_RGBD) && (mCurrentFrame.mTimeStamp-mpLastKeyFrame->mTimeStamp)>=0.25)
+            return true;
+        else
+            return false;
+    }
 
     if(mbOnlyTracking)
         return false;
@@ -3652,13 +3681,13 @@ void Tracking::SearchLocalPoints()
         // if(mpAtlas->isImuInitialized())
         // {
         //     if(mpAtlas->GetCurrentMap()->GetIniertialBA2())
-        //         th=2;
+        //         th=1;
         //     else
-        //         th=6;
+        //         th=2;
         // }
         // else if(!mpAtlas->isImuInitialized() && (mSensor==System::IMU_MONOCULAR || mSensor==System::IMU_STEREO || mSensor == System::IMU_RGBD))
         // {
-        //     th=10;
+        //     th=3;
         // }
 
         // If the camera has been relocalised recently, perform a coarser search

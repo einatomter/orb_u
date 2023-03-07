@@ -593,10 +593,7 @@ void LocalMapping::Run()
                     else if (mpAtlas->GetCurrentMap()->isScaleUWInitialized() && mbIsUW) // UW & initialized
                         Optimizer::LocalBundleAdjustment(mpCurrentKeyFrame,&mbAbortBA, mpCurrentKeyFrame->GetMap(),num_FixedKF_BA,num_OptKF_BA,num_MPs_BA,num_edges_BA, true);
                     else
-                    {
-                        // if (!(mbInertial && mbIsUW)) // Weird scaling issues when IMU is enabled, currently disabled in VIP mode
-                            Optimizer::LocalBundleAdjustment(mpCurrentKeyFrame,&mbAbortBA, mpCurrentKeyFrame->GetMap(),num_FixedKF_BA,num_OptKF_BA,num_MPs_BA,num_edges_BA);
-                    }
+                        Optimizer::LocalBundleAdjustment(mpCurrentKeyFrame,&mbAbortBA, mpCurrentKeyFrame->GetMap(),num_FixedKF_BA,num_OptKF_BA,num_MPs_BA,num_edges_BA);
 
                     b_doneLBA = true;
                 }
@@ -647,7 +644,7 @@ void LocalMapping::Run()
                 if(!mpCurrentKeyFrame->GetMap()->isImuInitialized() && mbInertial && mbIsUW)
                 {
                     // InitializeVIP(1e1, 1e3, true, 20, 0.0);
-                    // InitializeVIP(1e2, 1e5, true, 10, 0.0);
+                    InitializeVIP(1e2, 1e5, true, 10, 0.0);
                 }
 
 
@@ -714,6 +711,7 @@ void LocalMapping::Run()
                     {
                         if(!mpCurrentKeyFrame->GetMap()->GetIniertialBA1()){
                             bool bOK = InitializeVIP(1.f, 10.f, true, 30, 0.01);
+                            // bool bOK = InitializeVIP(0.f, 0.f, true, 30, 0.01);
                             if (bOK)
                             {
                                 mpCurrentKeyFrame->GetMap()->SetIniertialBA1();
@@ -728,21 +726,6 @@ void LocalMapping::Run()
                                 cout << "end VIP-BA 2, time: " << mpCurrentKeyFrame->mTimeStamp << endl;
                             }
                         }
-
-                        // // scale refinement
-                        // if (((mpAtlas->KeyFramesInMap())<=200) &&
-                        //         ((mTinit>25.0f && mTinit<25.5f)||
-                        //         (mTinit>35.0f && mTinit<35.5f)||
-                        //         (mTinit>45.0f && mTinit<45.5f)||
-                        //         (mTinit>55.0f && mTinit<55.5f)||
-                        //         (mTinit>65.0f && mTinit<65.5f)||
-                        //         (mTinit>75.0f && mTinit<75.5f))){
-                        //     if (mbMonocular)
-                        //     {
-                        //         cout << "Doing scale refinement" << endl;
-                        //         ScaleRefinement();
-                        //     }
-                        // }
                     }
                 }
             }
