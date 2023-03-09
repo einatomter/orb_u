@@ -687,6 +687,19 @@ void Optimizer::VIPOptimizationUW(Map *pMap, Eigen::Matrix3d &Rwg, double &scale
             double minDepthDistance = 0.0;
 
             double depthMeasured = pKFi->mPressureMeas.relativeDepthHeight();
+            const VertexPose* VPose = static_cast<const VertexPose*>(VP2);
+            const VertexGDir* VRotation = static_cast<const VertexGDir*>(VGDir);
+
+            Eigen::Vector3d translation(VPose->estimate().tcw[0]);
+            Eigen::Vector3d translation2(VPose->estimate().twb);
+
+
+            std::cout << "translation c: " << translation.transpose() << "\n";
+            std::cout << "translation b: " << translation2.transpose() << "\n";
+            std::cout << "rotated:       " << (VRotation->estimate().Rwg.transpose() * translation2).transpose() << "\n";
+            std::cout << "depth only:    " << (VRotation->estimate().Rwg.transpose() * translation2).transpose() * Eigen::Vector3d(0.f, 0.f, -1.f) << "\n";
+            std::cout << "measurement:   " << depthMeasured << "\n" << std::endl;
+
             // Do not include values that are too low
             if(fabs(depthMeasured) < minDepthDistance) 
                 continue;
