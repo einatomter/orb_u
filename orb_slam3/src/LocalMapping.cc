@@ -301,6 +301,20 @@ bool LocalMapping::InitializeVIP(float priorG, float priorA, bool bFIBA, int nMi
     Optimizer::VIPOptimizationUW(mpAtlas->GetCurrentMap(), mRwg, mScale, mbg, mba, mbMonocular, infoInertial, false, false, priorG, priorA);
 
     cout << "VIP Scale: " << mScale << endl;
+    double scale = 1;
+
+    Optimizer::ScaleOptimizationUW(mpAtlas->GetCurrentMap(), scale, mRwg, 0.01, 3);
+
+    cout << "VP Scale: " << scale << endl;
+
+    Sophus::SE3<float> Tcw = mpCurrentKeyFrame->GetPose();
+    // recover element (0,0) of matrix after vector multiplication
+    double depthEstimate = (Tcw.translation().cast<double>().transpose() * mpCurrentKeyFrame->mPressureMeas.depthAxis).value();
+    double depthMeasured = mpCurrentKeyFrame->mPressureMeas.relativeDepthHeight();
+
+    std::cout << depthEstimate << "\n";
+    std::cout << depthMeasured << "\n" << std::endl;
+
 
     std::chrono::steady_clock::time_point t1 = std::chrono::steady_clock::now();
 
@@ -326,6 +340,8 @@ bool LocalMapping::InitializeVIP(float priorG, float priorA, bool bFIBA, int nMi
                 KeyFrame *pKF2 = vpKF[i];
                 pKF2->bImu = true;
             }
+        
+        first = false;
     }
 
     mpTracker->UpdateFrameIMU(1.0,vpKF[0]->GetImuBias(),mpCurrentKeyFrame);
@@ -577,7 +593,7 @@ void LocalMapping::Run()
                             mTinit += mpCurrentKeyFrame->mTimeStamp - mpCurrentKeyFrame->mPrevKF->mTimeStamp;
                         if(!mpCurrentKeyFrame->GetMap()->GetIniertialBA2() && !mbIsUW)
                         {
-                            if((mTinit<10.f) && (dist<0.005))   // TODO: make distance yaml parameter to more easily change value
+                            if((mTinit<10.f) && ((dist<0.02 && !mbIsUW) || (dist<0.005 && mbIsUW)))   // TODO: make distance yaml parameter to more easily change value
                             {
                                 cout << "Not enough motion for initializing. Reseting..." << endl;
                                 unique_lock<mutex> lock(mMutexReset);
@@ -1497,7 +1513,6 @@ void LocalMapping::KeyFrameCulling()
 
         if(nRedundantObservations>redundant_th*nMPs)
         {
-            pKF->SetBadFlag();
             if (mbInertial)
             {
                 if (mpAtlas->KeyFramesInMap()<=Nd)
@@ -1950,7 +1965,7 @@ void LocalMapping::ScaleRefinement()
     mScale=1.0;
 
     std::chrono::steady_clock::time_point t0 = std::chrono::steady_clock::now();
-    Optimizer::InertialOptimization(mpAtlas->GetCurrentMap(), mRwg, mScale, mbIsUW);
+    Optimizer::InertialOptimization(mpAtlas->GetCurrentMap(), mRwg, mScale);
     std::chrono::steady_clock::time_point t1 = std::chrono::steady_clock::now();
 
     if (mScale<1e-1) // 1e-1
