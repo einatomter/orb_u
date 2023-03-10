@@ -298,7 +298,10 @@ bool LocalMapping::InitializeVIP(float priorG, float priorA, bool bFIBA, int nMi
 
     std::chrono::steady_clock::time_point t0 = std::chrono::steady_clock::now();
     // Optimizer::InertialOptimization(mpAtlas->GetCurrentMap(), mRwg, mScale, mbg, mba, mbMonocular, infoInertial, false, false, priorG, priorA);
-    Optimizer::VIPOptimizationUW(mpAtlas->GetCurrentMap(), mRwg, mScale, mbg, mba, mbMonocular, infoInertial, false, false, priorG, priorA);
+    if (first)
+        Optimizer::VIPOptimizationUW(mpAtlas->GetCurrentMap(), mRwg, mScale, mbg, mba, mbMonocular, infoInertial, false, false, priorG, priorA, true);
+    else
+        Optimizer::VIPOptimizationUW(mpAtlas->GetCurrentMap(), mRwg, mScale, mbg, mba, mbMonocular, infoInertial, false, false, priorG, priorA);
 
     cout << "VIP Scale: " << mScale << endl;
     double scale = 1;

@@ -56,7 +56,7 @@ public:
     
     void static VIPOptimizationUW(Map *pMap, Eigen::Matrix3d &Rwg, double &scale, 
                            Eigen::Vector3d &bg, Eigen::Vector3d &ba, bool bMono, Eigen::MatrixXd  &covInertial, 
-                           bool bFixedVel, bool bGauss, float priorG, float priorA);
+                           bool bFixedVel, bool bGauss, float priorG, float priorA, bool first = false);
     void static FullVIPBA(Map *pMap, int its, const bool bFixLocal=false, const unsigned long nLoopKF=0, bool *pbStopFlag=NULL, bool bInit=false, float priorG = 1e2, float priorA=1e6, Eigen::VectorXd *vSingVal = NULL, bool *bHess=NULL);
 
 // UW END

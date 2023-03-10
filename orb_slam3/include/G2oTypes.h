@@ -990,8 +990,8 @@ public:
         const VertexScale* VScale = static_cast<const VertexScale*>(_vertices[2]);
         const VertexGDir* VGDir = static_cast<const VertexGDir*>(_vertices[3]);
         // VPose->estimate().rotation().toRotationMatrix();
-        Eigen::Vector3d translation1(VP1->estimate().twb);
-        Eigen::Vector3d translation2(VP2->estimate().twb);
+        Eigen::Vector3d translation1(VP1->estimate().tcw[0]);
+        Eigen::Vector3d translation2(VP2->estimate().tcw[0]);
 
         // TODO: use matrix.value() to clean up code
         
@@ -1064,8 +1064,8 @@ public:
         const VertexGDir* VGDir = static_cast<const VertexGDir*>(_vertices[3]);
         const VertexDepthBias* VD = static_cast<const VertexDepthBias*>(_vertices[4]);
         // VPose->estimate().rotation().toRotationMatrix();
-        Eigen::Vector3d translation1(VP1->estimate().twb);
-        Eigen::Vector3d translation2(VP2->estimate().twb);
+        Eigen::Vector3d translation1(VP1->estimate().tcw[0]);
+        Eigen::Vector3d translation2(VP2->estimate().tcw[0]);
 
         // TODO: use matrix.value() to clean up code
         
