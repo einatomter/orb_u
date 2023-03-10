@@ -751,7 +751,28 @@ void Optimizer::VIPOptimizationUW(Map *pMap, Eigen::Matrix3d &Rwg, double &scale
                 continue;
             }
 
-            EdgeUWDepthGS2* eDepth = new EdgeUWDepthGS2;
+            if (first)
+            {
+                EdgeUWDepthGS2* eDepth = new EdgeUWDepthGS2;
+                eDepth->setVertex(0, dynamic_cast<g2o::OptimizableGraph::Vertex*>(VP1));
+                eDepth->setVertex(1, dynamic_cast<g2o::OptimizableGraph::Vertex*>(VP2));
+                eDepth->setVertex(2, dynamic_cast<g2o::OptimizableGraph::Vertex*>(VS));
+                eDepth->setVertex(3, dynamic_cast<g2o::OptimizableGraph::Vertex*>(VGDir));
+
+                Eigen::Vector2d depthMeasurement;
+                depthMeasurement << pKFi->mPressureMeas.relativeDepthHeight() - pKFi->mPrevKF->mPressureMeas.relativeDepthHeight(), pKFi->mPressureMeas.relativeDepthHeight();
+                eDepth->setMeasurement(depthMeasurement);
+                eDepth->setDepthAxis(Eigen::Vector3d(0.f, 0.f, 1.f));
+
+                Eigen::Matrix2d depthNoise;
+                depthNoise.diagonal() << 2 * UW::DEPTH_NOISE, UW::DEPTH_NOISE;
+                eDepth->setInformation(depthNoise.inverse() * 1e3);
+
+                optimizer.addEdge(eDepth);
+                continue;
+            }
+
+            EdgeUWDepthGS4* eDepth = new EdgeUWDepthGS4;
             eDepth->setVertex(0, dynamic_cast<g2o::OptimizableGraph::Vertex*>(VP1));
             eDepth->setVertex(1, dynamic_cast<g2o::OptimizableGraph::Vertex*>(VP2));
             eDepth->setVertex(2, dynamic_cast<g2o::OptimizableGraph::Vertex*>(VS));
@@ -760,19 +781,12 @@ void Optimizer::VIPOptimizationUW(Map *pMap, Eigen::Matrix3d &Rwg, double &scale
             Eigen::Vector2d depthMeasurement;
             depthMeasurement << pKFi->mPressureMeas.relativeDepthHeight() - pKFi->mPrevKF->mPressureMeas.relativeDepthHeight(), pKFi->mPressureMeas.relativeDepthHeight();
             eDepth->setMeasurement(depthMeasurement);
-            if (first)
-                eDepth->setDepthAxis(Eigen::Vector3d(0.f, 0.f, 1.f));
-            else
-                eDepth->setDepthAxis(Eigen::Vector3d(pKFi->mPressureMeas.depthAxis));
-
-
+            eDepth->setDepthAxis(Eigen::Vector3d(0.f, 0.f, -1.f));
+            // eDepth->setDepthAxis(Eigen::Vector3d(pKFi->mPressureMeas.depthAxis));
 
             Eigen::Matrix2d depthNoise;
             depthNoise.diagonal() << 2 * UW::DEPTH_NOISE, UW::DEPTH_NOISE;
-            if (first)
-                eDepth->setInformation(depthNoise.inverse() * 1e3);
-            else
-                eDepth->setInformation(depthNoise.inverse() * 1e1);
+            eDepth->setInformation(depthNoise.inverse() * 1e3);
 
             optimizer.addEdge(eDepth);
         }
@@ -1028,7 +1042,7 @@ void Optimizer::FullVIPBA(Map *pMap, int its, const bool bFixLocal, const long u
                 Eigen::Matrix2d depthNoise;
                 depthNoise.diagonal() << 2 * UW::DEPTH_NOISE, UW::DEPTH_NOISE;
                 // eDepth->setInformation(depthNoise.inverse());
-                eDepth->setInformation(depthNoise.inverse() * 1e1);
+                eDepth->setInformation(depthNoise.inverse() * 1e3);
                 optimizer.addEdge(eDepth);
             }
             else
@@ -3955,11 +3969,11 @@ void Optimizer::LocalInertialBA(KeyFrame *pKF, bool *pbStopFlag, Map *pMap, int&
                 Eigen::Vector2d depthMeasurement;
                 depthMeasurement << pKFi->mPressureMeas.relativeDepthHeight() - pKFi->mPrevKF->mPressureMeas.relativeDepthHeight(), pKFi->mPressureMeas.relativeDepthHeight();
                 eDepth->setMeasurement(depthMeasurement);
+                // eDepth->setDepthAxis(pKFi->mPressureMeas.depthAxis);
                 eDepth->setDepthAxis(Eigen::Vector3d(0.f, 0.f, -1.f));
                 Eigen::Matrix2d depthNoise;
                 depthNoise.diagonal() << 2 * UW::DEPTH_NOISE, UW::DEPTH_NOISE;
-                eDepth->setInformation(depthNoise.inverse());
-                // eDepth->setInformation(depthNoise.inverse() * 1e1);
+                eDepth->setInformation(depthNoise.inverse() * 1e0);
                 optimizer.addEdge(eDepth);
             }
         }
@@ -6010,11 +6024,12 @@ int Optimizer::PoseInertialOptimizationLastKeyFrame(Frame *pFrame, bool bRecInit
         Eigen::Vector2d depthMeasurement;
         depthMeasurement << pFrame->mPressureMeas.relativeDepthHeight() - pKF->mPressureMeas.relativeDepthHeight(), pFrame->mPressureMeas.relativeDepthHeight();
         eDepth->setMeasurement(depthMeasurement);
+        // eDepth->setDepthAxis(pFrame->mPressureMeas.depthAxis);
         eDepth->setDepthAxis(Eigen::Vector3d(0.f, 0.f, -1.f));
         Eigen::Matrix2d depthNoise;
         depthNoise.diagonal() << 2 * UW::DEPTH_NOISE, UW::DEPTH_NOISE;
         // eDepth->setInformation(depthNoise.inverse());
-        eDepth->setInformation(depthNoise.inverse() * 1e2);
+        eDepth->setInformation(depthNoise.inverse() * 1e3);
         optimizer.addEdge(eDepth);
     }
 
@@ -6430,11 +6445,12 @@ int Optimizer::PoseInertialOptimizationLastFrame(Frame *pFrame, bool bRecInit, b
         Eigen::Vector2d depthMeasurement;
         depthMeasurement << pFrame->mPressureMeas.relativeDepthHeight() - pFp->mPressureMeas.relativeDepthHeight(), pFrame->mPressureMeas.relativeDepthHeight();
         eDepth->setMeasurement(depthMeasurement);
+        // eDepth->setDepthAxis(pFrame->mPressureMeas.depthAxis);
         eDepth->setDepthAxis(Eigen::Vector3d(0.f, 0.f, -1.f));
         Eigen::Matrix2d depthNoise;
         depthNoise.diagonal() << 2 * UW::DEPTH_NOISE, UW::DEPTH_NOISE;
         // eDepth->setInformation(depthNoise.inverse());
-        eDepth->setInformation(depthNoise.inverse() * 1e2);
+        eDepth->setInformation(depthNoise.inverse() * 1e3);
         optimizer.addEdge(eDepth);
     }
 
