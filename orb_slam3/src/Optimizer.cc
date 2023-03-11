@@ -640,15 +640,6 @@ void Optimizer::VIPOptimizationUW(Map *pMap, Eigen::Matrix3d &Rwg, double &scale
     VS->setFixed(!bMono); // Fixed for stereo case
     optimizer.addVertex(VS);
 
-    bool enableDepthBias = false;
-    if (enableDepthBias)
-    {
-        VertexDepthBias * VD = new VertexDepthBias();
-        VD->setId(maxKFid*2+6);
-        VD->setFixed(first);
-        optimizer.addVertex(VD);
-    }
-
     // Graph edges
     // IMU links with gravity and scale
     vector<EdgeInertialGS*> vpei;
@@ -699,87 +690,11 @@ void Optimizer::VIPOptimizationUW(Map *pMap, Eigen::Matrix3d &Rwg, double &scale
             optimizer.addEdge(ei);
 
             // Depth measurements
-            double minDepthDistance = 0.0;
+            // double minDepthDistance = 0.0;
 
-            double depthMeasured = pKFi->mPressureMeas.relativeDepthHeight();
-            const VertexPose* VPose = static_cast<const VertexPose*>(VP2);
-            const VertexGDir* VRotation = static_cast<const VertexGDir*>(VGDir);
-
-            Eigen::Vector3d translation1(VPose->estimate().tcw[0]);
-            Eigen::Vector3d translation2(VPose->estimate().twb);
-            Eigen::Vector3d imuOffset = VPose->estimate().tcb[0];
-
-            // std::cout << "imu offset:    " << imuOffset.transpose() << "\n";
-            // std::cout << "translation b: " << translation2.transpose() << "\n";
-            // std::cout << "rotated:       " << (VRotation->estimate().Rwg.transpose() * (translation2 - pFirstKF->GetImuPosition().cast<double>())).transpose() << "\n";
-            // // std::cout << "translation c: " << translation1.transpose() << "\n";
-            // // std::cout << "rotated:       " << (VRotation->estimate().Rwg.transpose() * translation1).transpose() << "\n";
-            // // if (first)
-            // //     std::cout << "depth only:    " << (VRotation->estimate().Rwg.transpose() * translation1).transpose() * Eigen::Vector3d(0.f, 0.f, 1.f) << "\n";
-            // // else
-            // //     std::cout << "depth only:    " << (VRotation->estimate().Rwg.transpose() * translation1).transpose() * pKFi->mPressureMeas.depthAxis << "\n";
-            // // std::cout << "depth only:    " << (VRotation->estimate().Rwg.transpose() * translation1).transpose() * Eigen::Vector3d(0.f, 0.f, -1.f) << "\n";
-            // std::cout << "depth only:    " << (VRotation->estimate().Rwg.transpose() * translation2).transpose() * Eigen::Vector3d(0.f, 0.f, -1.f) << "\n";
-            // std::cout << "measurement:   " << depthMeasured - (imuOffset.transpose() * Eigen::Vector3d(0.f, 0.f, -1.f)).value() << "\n" << std::endl;
-
-            // Do not include values that are too low
-            // if(fabs(depthMeasured) < minDepthDistance) 
-            //     continue;
-            // Do not include values if signs are inverted
-            // if (signbit(depthEstimate) != signbit(depthMeasured))
-            //     continue;
-
-            if (enableDepthBias)
-            {
-                g2o::HyperGraph::Vertex* VD = optimizer.vertex(maxKFid*2+6);
-
-                EdgeUWDepthGS3* eDepth = new EdgeUWDepthGS3;
-                eDepth->setVertex(0, dynamic_cast<g2o::OptimizableGraph::Vertex*>(VP1));
-                eDepth->setVertex(1, dynamic_cast<g2o::OptimizableGraph::Vertex*>(VP2));
-                eDepth->setVertex(2, dynamic_cast<g2o::OptimizableGraph::Vertex*>(VS));
-                eDepth->setVertex(3, dynamic_cast<g2o::OptimizableGraph::Vertex*>(VGDir));
-                eDepth->setVertex(4, dynamic_cast<g2o::OptimizableGraph::Vertex*>(VD));
-
-
-                Eigen::Vector2d depthMeasurement;
-                depthMeasurement << pKFi->mPressureMeas.relativeDepthHeight() - pKFi->mPrevKF->mPressureMeas.relativeDepthHeight(), pKFi->mPressureMeas.relativeDepthHeight();
-                eDepth->setMeasurement(depthMeasurement);
-                if (first)
-                    eDepth->setDepthAxis(Eigen::Vector3d(0.f, 0.f, 1.f));
-                else
-                    eDepth->setDepthAxis(Eigen::Vector3d(pKFi->mPressureMeas.depthAxis));
-
-                Eigen::Matrix2d depthNoise;
-                depthNoise.diagonal() << 2 * UW::DEPTH_NOISE, UW::DEPTH_NOISE;
-                if (first)
-                    eDepth->setInformation(depthNoise.inverse() * 1e3);
-                else
-                    eDepth->setInformation(depthNoise.inverse() * 1e1);
-
-                optimizer.addEdge(eDepth);
-                continue;
-            }
-
-            // if (first)
-            // {
-            //     EdgeUWDepthGS2* eDepth = new EdgeUWDepthGS2;
-            //     eDepth->setVertex(0, dynamic_cast<g2o::OptimizableGraph::Vertex*>(VP1));
-            //     eDepth->setVertex(1, dynamic_cast<g2o::OptimizableGraph::Vertex*>(VP2));
-            //     eDepth->setVertex(2, dynamic_cast<g2o::OptimizableGraph::Vertex*>(VS));
-            //     eDepth->setVertex(3, dynamic_cast<g2o::OptimizableGraph::Vertex*>(VGDir));
-
-            //     Eigen::Vector2d depthMeasurement;
-            //     depthMeasurement << pKFi->mPressureMeas.relativeDepthHeight() - pKFi->mPrevKF->mPressureMeas.relativeDepthHeight(), pKFi->mPressureMeas.relativeDepthHeight();
-            //     eDepth->setMeasurement(depthMeasurement);
-            //     eDepth->setDepthAxis(Eigen::Vector3d(0.f, 0.f, 1.f));
-
-            //     Eigen::Matrix2d depthNoise;
-            //     depthNoise.diagonal() << 2 * UW::DEPTH_NOISE, UW::DEPTH_NOISE;
-            //     eDepth->setInformation(depthNoise.inverse() * 1e3);
-
-            //     optimizer.addEdge(eDepth);
-            //     continue;
-            // }
+            // double depthMeasured = pKFi->mPressureMeas.relativeDepthHeight();
+            // const VertexPose* VPose = static_cast<const VertexPose*>(VP2);
+            // const VertexGDir* VRotation = static_cast<const VertexGDir*>(VGDir);
 
             EdgeUWDepthGS4* eDepth = new EdgeUWDepthGS4;
             eDepth->setVertex(0, dynamic_cast<g2o::OptimizableGraph::Vertex*>(VP1));
@@ -790,8 +705,7 @@ void Optimizer::VIPOptimizationUW(Map *pMap, Eigen::Matrix3d &Rwg, double &scale
             Eigen::Vector2d depthMeasurement;
             depthMeasurement << pKFi->mPressureMeas.relativeDepthHeight() - pKFi->mPrevKF->mPressureMeas.relativeDepthHeight(), pKFi->mPressureMeas.relativeDepthHeight();
             eDepth->setMeasurement(depthMeasurement);
-            eDepth->setDepthAxis(Eigen::Vector3d(0.f, 0.f, -1.f));
-            // eDepth->setDepthAxis(Eigen::Vector3d(pKFi->mPressureMeas.depthAxis));
+            eDepth->setDepthAxis(Eigen::Vector3d(0.f, 0.f, -1.f));  // TODO: declare as const at start of function?
 
             Eigen::Matrix2d depthNoise;
             depthNoise.diagonal() << 2 * UW::DEPTH_NOISE, UW::DEPTH_NOISE;
@@ -847,14 +761,6 @@ void Optimizer::VIPOptimizationUW(Map *pMap, Eigen::Matrix3d &Rwg, double &scale
 
 
     }
-    
-    if (enableDepthBias)
-    {
-        float depthBias = 0;
-        VertexDepthBias* VD = static_cast<VertexDepthBias*>(optimizer.vertex(maxKFid*2+6));
-        depthBias = VD->estimate();
-        std::cout << "depth bias: " << depthBias << std::endl;
-    }
 }
 
 
@@ -901,11 +807,7 @@ void Optimizer::FullVIPBA(Map *pMap, int its, const bool bFixLocal, const long u
             VP->setFixed(bFixed);
         }
         if (i == 0) // Fix the first keyframe at origin
-        {
             VP->setFixed(true);
-            std::cout << "first keyframe tcw: " << VP->estimate().tcw[0].transpose() << "\n";
-            std::cout << "first keyframe twb: " << VP->estimate().twb.transpose() << "\n" << std::endl;
-        }
         optimizer.addVertex(VP);
 
         if(pKFi->bImu)
@@ -1046,11 +948,9 @@ void Optimizer::FullVIPBA(Map *pMap, int its, const bool bFixLocal, const long u
                 Eigen::Vector2d depthMeasurement;
                 depthMeasurement << pKFi->mPressureMeas.relativeDepthHeight() - pKFi->mPrevKF->mPressureMeas.relativeDepthHeight(), pKFi->mPressureMeas.relativeDepthHeight();
                 eDepth->setMeasurement(depthMeasurement);
-                // eDepth->setDepthAxis(pKFi->mPressureMeas.depthAxis);
                 eDepth->setDepthAxis(Eigen::Vector3d(0.f, 0.f, -1.f));
                 Eigen::Matrix2d depthNoise;
                 depthNoise.diagonal() << 2 * UW::DEPTH_NOISE, UW::DEPTH_NOISE;
-                // eDepth->setInformation(depthNoise.inverse());
                 eDepth->setInformation(depthNoise.inverse() * 1e3);
                 optimizer.addEdge(eDepth);
             }

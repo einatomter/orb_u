@@ -303,16 +303,7 @@ bool LocalMapping::InitializeVIP(float priorG, float priorA, bool bFIBA, int nMi
     else
         Optimizer::VIPOptimizationUW(mpAtlas->GetCurrentMap(), mRwg, mScale, mbg, mba, mbMonocular, infoInertial, false, false, priorG, priorA);
 
-    cout << "VIP Scale: " << mScale << endl;
-
-    Sophus::SE3<float> Tcw = mpCurrentKeyFrame->GetPose();
-    // recover element (0,0) of matrix after vector multiplication
-    double depthEstimate = (Tcw.translation().cast<double>().transpose() * mpCurrentKeyFrame->mPressureMeas.depthAxis).value();
-    double depthMeasured = mpCurrentKeyFrame->mPressureMeas.relativeDepthHeight();
-
-    // std::cout << depthEstimate << "\n";
-    // std::cout << depthMeasured << "\n" << std::endl;
-
+    // cout << "VIP Scale: " << mScale << endl;
 
     std::chrono::steady_clock::time_point t1 = std::chrono::steady_clock::now();
 
