@@ -899,23 +899,16 @@ public:
         const VertexPose* VP2 = static_cast<const VertexPose*>(_vertices[1]);
         Eigen::Vector3d translation1(VP1->estimate().twb);
         Eigen::Vector3d translation2(VP2->estimate().twb);
+        Eigen::Vector3d imuOffset = VP2->estimate().tcb[0];
         
         double estRelative = ((translation2 - translation1).transpose() * _depthAxis).value();
-        // TODO: use tbc instead of fixed value
-        double estAbsolute = (translation2.transpose() * _depthAxis).value() + 0.15;
+        double estAbsolute = (translation2.transpose() * _depthAxis).value();
 
         double er = _measurement.x() - estRelative;
-        double ea = _measurement.y() - estAbsolute;
+        double ea = _measurement.y() - estAbsolute - (imuOffset.transpose() * _depthAxis).value();
 
         _error << 0, ea; 
     }
-
-    // redefined to 1D definition ((x-mu)^2/sigma^2)
-    // virtual double chi2() const{
-    //     // information is already inverse and can therefore be multiplied directly
-    //     // std::cout << "chi2 depth: " << pow(_error(0,0)*information()(0,0), 2) << std::endl;
-    //     return pow(_error(0,0)*information()(0,0), 2);
-    // }
 
     virtual bool read(std::istream& is){return false;}
     virtual bool write(std::ostream& os) const{return false;}
@@ -1036,26 +1029,17 @@ public:
         const VertexGDir* VGDir = static_cast<const VertexGDir*>(_vertices[3]);
         Eigen::Vector3d translation1(VP1->estimate().twb);
         Eigen::Vector3d translation2(VP2->estimate().twb);
+        Eigen::Vector3d imuOffset = VP2->estimate().tcb[0];
         
         double estRelative = ((VGDir->estimate().Rwg.transpose() * (translation2 - translation1)).transpose() * _depthAxis).value();
         // TODO: use tbc instead of fixed value
-        double estAbsolute = ((VGDir->estimate().Rwg.transpose() * translation2).transpose() * _depthAxis).value() + 0.15;
-
-        std::cout << "est absolute: " << estAbsolute << "\n";
-        std::cout << "measurement:  " << _measurement.y() << "\n" << std::endl;
+        double estAbsolute = ((VGDir->estimate().Rwg.transpose() * translation2).transpose() * _depthAxis).value();
 
         double er = _measurement.x() - (VScale->estimate() * estRelative);
-        double ea = _measurement.y() - (VScale->estimate() * estAbsolute);
+        double ea = _measurement.y() - (VScale->estimate() * estAbsolute) - (imuOffset.transpose() * _depthAxis).value();
 
         _error << 0, ea;
     }
-
-    // // redefined to 1D definition ((x-mu)^2/sigma^2)
-    // virtual double chi2() const{
-    //     // information is already inverse and can therefore be multiplied directly
-    //     // std::cout << "chi2 depth: " << pow(_error(0,0)*information()(0,0), 2) << std::endl;
-    //     return pow(_error(0,0)*information()(0,0), 2);
-    // }
 
     virtual bool read(std::istream& is){return false;}
     virtual bool write(std::ostream& os) const{return false;}
