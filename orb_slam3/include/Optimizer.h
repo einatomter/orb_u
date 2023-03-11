@@ -54,6 +54,13 @@ public:
     bool static UWBA(Map* pMap, double &scale, Eigen::Matrix3d &Rwg, int nIterations=5, bool* pbStopFlag=NULL, 
                      const unsigned long nLoopKF=0, const bool bRobust=true, bool setRwgFixed = false, bool setScaleFixed = false, int minKFs = 15, double minDepthDistance = 0.0);
     
+    bool static ScaleOptimizationUW2(Map *pMap, double &scale, Eigen::Matrix3d &Rwg, 
+                                    float minDepthDistance = 0.05, int minKFs = 10, 
+                                    bool setRwgFixed = true, bool setScaleFixed = false);
+    
+    bool static UWBA2(Map* pMap, double &scale, Eigen::Matrix3d &Rwg, int nIterations=5, bool* pbStopFlag=NULL, 
+                     const unsigned long nLoopKF=0, const bool bRobust=true, bool setRwgFixed = false, bool setScaleFixed = false, int minKFs = 15, double minDepthDistance = 0.0);
+
     void static VIPOptimizationUW(Map *pMap, Eigen::Matrix3d &Rwg, double &scale, 
                            Eigen::Vector3d &bg, Eigen::Vector3d &ba, bool bMono, Eigen::MatrixXd  &covInertial, 
                            bool bFixedVel, bool bGauss, float priorG, float priorA, bool first = false);

@@ -44,6 +44,7 @@ class LocalMapping
 public:
     bool CalculateScaleUW(double &scale);
     void InitializeUW();  // Unused in favor of an optimization-based algorithm
+    bool InitializeUW2(bool bFVPBA, int nMinKF = 15, double minDepthDistance = 0.0);
     bool InitializeVIP(float priorG, float priorA, bool bFIBA, int nMinKF = 15, double minDepthDistance = 0.0);
 
 
