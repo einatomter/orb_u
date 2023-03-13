@@ -551,7 +551,7 @@ bool Optimizer::UWBA(Map* pMap, double &scale, Eigen::Matrix3d &Rwg, int nIterat
 
 
 
-int Optimizer::PoseOptimizationUW(Frame *pFrame, bool isUW)
+int Optimizer::PoseOptimizationUW(Frame *pFrame, Frame *pFramePrev, bool isUW)
 {
     g2o::SparseOptimizer optimizer;
     g2o::BlockSolver_6_3::LinearSolverType * linearSolver;
@@ -573,18 +573,13 @@ int Optimizer::PoseOptimizationUW(Frame *pFrame, bool isUW)
     vSE3->setFixed(false);
     optimizer.addVertex(vSE3);
 
-
-    cout << "adding reference keyframe" << endl;
-
     g2o::VertexSE3Expmap * vSE3Ref = new g2o::VertexSE3Expmap();
-
-    Sophus::SE3<float> TcwRef = pFrame->mpReferenceKF->GetPose();
+    Sophus::SE3<float> TcwRef = pFramePrev->GetPose();
     vSE3Ref->setEstimate(g2o::SE3Quat(TcwRef.unit_quaternion().cast<double>(),TcwRef.translation().cast<double>()));
     vSE3Ref->setId(1);
     vSE3Ref->setFixed(true);
     optimizer.addVertex(vSE3Ref);
 
-    cout << "added reference keyframe as vertex" << endl;
 
     {
         g2o::HyperGraph::Vertex* VP1 = optimizer.vertex(1);
@@ -602,17 +597,14 @@ int Optimizer::PoseOptimizationUW(Frame *pFrame, bool isUW)
         eDepth->setVertex(1, VP2);
         // TODO: make this look cleaner
         Eigen::Vector2d depthMeasurement;
-        depthMeasurement << pFrame->mPressureMeas.relativeDepthHeight() - pFrame->mpReferenceKF->mPressureMeas.relativeDepthHeight(), pFrame->mPressureMeas.relativeDepthHeight();
+        depthMeasurement << pFrame->mPressureMeas.relativeDepthHeight() - pFramePrev->mPressureMeas.relativeDepthHeight(), pFrame->mPressureMeas.relativeDepthHeight();
         eDepth->setMeasurement(depthMeasurement);
         eDepth->setDepthAxis(pFrame->mPressureMeas.depthAxis);
         Eigen::Matrix2d depthNoise;
         depthNoise.diagonal() << 2 * UW::DEPTH_NOISE, UW::DEPTH_NOISE;
         eDepth->setInformation(depthNoise.inverse() * 1e2);
 
-
         optimizer.addEdge(eDepth);
-
-        cout << "added depth edge" << endl;
     }
 
 
