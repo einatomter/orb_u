@@ -256,20 +256,18 @@ bool LocalMapping::InitializeUW2(bool bFVPBA, int nMinKF, double minDepthDistanc
     cout << "Performing Scale optimization UW 2" << endl;
 
     std::chrono::steady_clock::time_point t0 = std::chrono::steady_clock::now();
+
+    
     if (!mpCurrentKeyFrame->GetMap()->GetIniertialBA1())
     {
-        Optimizer::ScaleOptimizationUW2(mpAtlas->GetCurrentMap(), mScale, mRwg, 0.0, nMinKF, true, false);
-        cout << "VP Scale: " << mScale << endl;
+        Optimizer::ScaleOptimizationUW2(mpAtlas->GetCurrentMap(), mScale, mRwg, 0.0, nMinKF, false, false);
+        cout << "Map fixed scale: " << mScale << "\n";
+        cout << "rotation" << "\n";
+        cout << mRwg.transpose() << "\n" << endl;
     }
-
 
     std::chrono::steady_clock::time_point t1 = std::chrono::steady_clock::now();
 
-    // if (mpCurrentKeyFrame->GetMap()->GetIniertialBA1())
-    //     Optimizer::ScaleOptimizationUW2(mpAtlas->GetCurrentMap(), mScale, mRwg, 0.0, nMinKF, false, true);
-
-    // cout << "rotation" << "\n";
-    // cout << mRwg.transpose() << endl;
 
     if (mScale<1e-1)
     {
@@ -278,8 +276,14 @@ bool LocalMapping::InitializeUW2(bool bFVPBA, int nMinKF, double minDepthDistanc
         return false;
     }
 
+
+    
+
     // Before this line we are not changing the map
     {
+        // if (first || !mpCurrentKeyFrame->GetMap()->GetIniertialBA1())
+            mRwg = Eigen::Matrix3d::Identity();
+
         unique_lock<mutex> lock(mpAtlas->GetCurrentMap()->mMutexMapUpdate);
         if ((fabs(mScale - 1.f) > 0.00001) || !mbMonocular) {
             Sophus::SE3f Twg(mRwg.cast<float>().transpose(), Eigen::Vector3f::Zero());
@@ -287,9 +291,6 @@ bool LocalMapping::InitializeUW2(bool bFVPBA, int nMinKF, double minDepthDistanc
         }
         
     }
-
-
-    
 
     if (!mpAtlas->GetCurrentMap()->isScaleUWInitialized())
     {
@@ -312,16 +313,15 @@ bool LocalMapping::InitializeUW2(bool bFVPBA, int nMinKF, double minDepthDistanc
             optOK = Optimizer::UWBA2(mpAtlas->GetCurrentMap(), mScale, mRwg, 100, NULL, mpCurrentKeyFrame->mnId, true, false, false, 0, 0.0);
     }
 
-    cout << "VP Scale: " << mScale << endl;
+    cout << "VPBA Scale: " << mScale << "\n";
     cout << "rotation" << "\n";
-    cout << mRwg.transpose() << endl;
+    cout << mRwg.transpose() << "\n" << endl;
 
+    // if (mpCurrentKeyFrame->GetMap()->GetIniertialBA1())
     // if (!first)
-    if (mpCurrentKeyFrame->GetMap()->GetIniertialBA1())
     {
-        // mScale = 1.0;
-        // Optimizer::ScaleOptimizationUW2(mpAtlas->GetCurrentMap(), mScale, mRwg, 0.0, 0, true, false);
-        // cout << "Final Scale: " << mScale << endl;
+        if (first || !mpCurrentKeyFrame->GetMap()->GetIniertialBA1())
+            mRwg = Eigen::Matrix3d::Identity();
 
         unique_lock<mutex> lock(mpAtlas->GetCurrentMap()->mMutexMapUpdate);
         Sophus::SE3f Twg(mRwg.cast<float>().transpose(), Eigen::Vector3f::Zero());
