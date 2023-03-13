@@ -804,7 +804,7 @@ bool Optimizer::UWBA2(Map* pMap, double &scale, Eigen::Matrix3d &Rwg, int nItera
             continue;
         }
 
-        EdgeUWDepthGSUW2* eDepth = new EdgeUWDepthGSUW2;
+        EdgeUWDepthGSUW3* eDepth = new EdgeUWDepthGSUW3;
         eDepth->setVertex(0, dynamic_cast<g2o::OptimizableGraph::Vertex*>(VP1));
         eDepth->setVertex(1, dynamic_cast<g2o::OptimizableGraph::Vertex*>(VP2));
         // TODO: switch these up just because it's inverted compared to everywhere else
@@ -2976,6 +2976,10 @@ void Optimizer::LocalBundleAdjustment(KeyFrame *pKF, bool* pbStopFlag, Map* pMap
             eDepth->setDepthAxis(pKFi->mPressureMeas.depthAxis);
             Eigen::Matrix<double, 1, 1> depthNoise(UW::DEPTH_NOISE);
             eDepth->setInformation(depthNoise.inverse());
+            eDepth->computeError();
+            if (eDepth->error().value() > 5)
+                std::cout << "eDepth error: " << eDepth->error().value() << std::endl;
+
             optimizer.addEdge(eDepth);
         }
 

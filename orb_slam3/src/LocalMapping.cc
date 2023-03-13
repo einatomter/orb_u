@@ -319,9 +319,9 @@ bool LocalMapping::InitializeUW2(bool bFVPBA, int nMinKF, double minDepthDistanc
     // if (!first)
     if (mpCurrentKeyFrame->GetMap()->GetIniertialBA1())
     {
-        mScale = 1.0;
-        Optimizer::ScaleOptimizationUW2(mpAtlas->GetCurrentMap(), mScale, mRwg, 0.0, 0, true, false);
-        cout << "Final Scale: " << mScale << endl;
+        // mScale = 1.0;
+        // Optimizer::ScaleOptimizationUW2(mpAtlas->GetCurrentMap(), mScale, mRwg, 0.0, 0, true, false);
+        // cout << "Final Scale: " << mScale << endl;
 
         unique_lock<mutex> lock(mpAtlas->GetCurrentMap()->mMutexMapUpdate);
         Sophus::SE3f Twg(mRwg.cast<float>().transpose(), Eigen::Vector3f::Zero());

@@ -1276,6 +1276,45 @@ private:
 };
 
 
+class EdgeUWDepthGSUW3: public g2o::BaseMultiEdge<2, Eigen::Vector2d>
+{
+public:
+    EIGEN_MAKE_ALIGNED_OPERATOR_NEW
+    EdgeUWDepthGSUW3(){
+        resize(4);
+    }
+
+    // Set camera orientation relative to depth axis
+    void setDepthAxis(const Eigen::Vector3d& input){
+        _depthAxis = input;
+    }
+
+    void computeError(){
+        const g2o::VertexSE3Expmap* VP1 = static_cast<const g2o::VertexSE3Expmap*>(_vertices[0]);
+        const g2o::VertexSE3Expmap* VP2 = static_cast<const g2o::VertexSE3Expmap*>(_vertices[1]);
+        const VertexScale* VScale = static_cast<const VertexScale*>(_vertices[2]);
+        const VertexGDir* VGDir = static_cast<const VertexGDir*>(_vertices[3]);
+        Eigen::Vector3d translation1(VP1->estimate().translation());
+        Eigen::Vector3d translation2(VP2->estimate().translation());
+        
+        double estRelative = ((VGDir->estimate().Rwg.transpose() * (translation2 - translation1)).transpose() * _depthAxis).value();
+        double estAbsolute = ((VGDir->estimate().Rwg.transpose() * translation2).transpose() * _depthAxis).value();
+
+        double er = _measurement.x() - (VScale->estimate() * estRelative);
+        double ea = _measurement.y() - (VScale->estimate() * estAbsolute);
+
+        _error << 0, ea;
+    }
+
+    virtual bool read(std::istream& is){return false;}
+    virtual bool write(std::ostream& os) const{return false;}
+
+private:
+    Eigen::Vector3d _depthAxis;
+};
+
+
+
 // -------------------------------------------------------------------------------------------
 // UW END
 // -------------------------------------------------------------------------------------------
