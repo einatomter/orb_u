@@ -257,17 +257,21 @@ bool LocalMapping::InitializeUW2(bool bFVPBA, int nMinKF, double minDepthDistanc
 
     std::chrono::steady_clock::time_point t0 = std::chrono::steady_clock::now();
 
-    
-    // if (!mpCurrentKeyFrame->GetMap()->GetIniertialBA1())
     {
-        Optimizer::ScaleOptimizationUW2(mpAtlas->GetCurrentMap(), mScale, mRwg, 0.0, nMinKF, false, false);
+        if (first)
+            Optimizer::ScaleOptimizationUW2(mpAtlas->GetCurrentMap(), mScale, mRwg, 0.01, 3, false, false);
+        else if (!mpCurrentKeyFrame->GetMap()->GetIniertialBA1())
+            Optimizer::ScaleOptimizationUW2(mpAtlas->GetCurrentMap(), mScale, mRwg, 0.03, 3, false, false);
+        else
+            Optimizer::ScaleOptimizationUW2(mpAtlas->GetCurrentMap(), mScale, mRwg, 0.05, 3, false, false);
+
         cout << "Map fixed scale: " << mScale << "\n";
         cout << "rotation" << "\n";
         cout << mRwg.transpose() << "\n" << endl;
     }
 
-    std::chrono::steady_clock::time_point t1 = std::chrono::steady_clock::now();
 
+    std::chrono::steady_clock::time_point t1 = std::chrono::steady_clock::now();
 
     if (mScale<1e-1)
     {
@@ -306,11 +310,11 @@ bool LocalMapping::InitializeUW2(bool bFVPBA, int nMinKF, double minDepthDistanc
     {
         // Optimizer::FullVIPBA(mpAtlas->GetCurrentMap(), 100, false, mpCurrentKeyFrame->mnId, NULL, false);
         if (first)
-            optOK = Optimizer::UWBA2(mpAtlas->GetCurrentMap(), mScale, mRwg, 100, NULL, mpCurrentKeyFrame->mnId, true, false, false, 0, 0.0);
+            optOK = Optimizer::UWBA2(mpAtlas->GetCurrentMap(), mScale, mRwg, 100, NULL, mpCurrentKeyFrame->mnId, true, false, false, 0, 0.01);
         else if (!mpCurrentKeyFrame->GetMap()->GetIniertialBA1())
-            optOK = Optimizer::UWBA2(mpAtlas->GetCurrentMap(), mScale, mRwg, 100, NULL, mpCurrentKeyFrame->mnId, true, false, false, 0, 0.0);
+            optOK = Optimizer::UWBA2(mpAtlas->GetCurrentMap(), mScale, mRwg, 100, NULL, mpCurrentKeyFrame->mnId, true, false, false, 0, 0.03);
         else
-            optOK = Optimizer::UWBA2(mpAtlas->GetCurrentMap(), mScale, mRwg, 100, NULL, mpCurrentKeyFrame->mnId, true, false, false, 0, 0.0);
+            optOK = Optimizer::UWBA2(mpAtlas->GetCurrentMap(), mScale, mRwg, 100, NULL, mpCurrentKeyFrame->mnId, true, false, false, 0, 0.05);
     }
 
     cout << "VPBA Scale: " << mScale << "\n";

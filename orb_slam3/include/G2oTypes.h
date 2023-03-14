@@ -1303,7 +1303,7 @@ public:
         double er = _measurement.x() - (VScale->estimate() * estRelative);
         double ea = _measurement.y() - (VScale->estimate() * estAbsolute);
 
-        _error << 0, ea;
+        _error << er, 0;
     }
 
     virtual bool read(std::istream& is){return false;}

@@ -925,7 +925,6 @@ bool Optimizer::ScaleOptimizationUW2(Map *pMap, double &scale, Eigen::Matrix3d &
             continue;
 
         float depthMeasured = pKFi->mPressureMeas.relativeDepthHeight();
-
         if(fabs(depthMeasured) < minDepthDistance) 
             continue;
 
@@ -1088,6 +1087,10 @@ bool Optimizer::UWBA2(Map* pMap, double &scale, Eigen::Matrix3d &Rwg, int nItera
         optimizer.addVertex(vSE3);
         if(pKF->mnId>maxKFid)
             maxKFid=pKF->mnId;
+
+        float depthMeasured = pKF->mPressureMeas.relativeDepthHeight();
+        if(fabs(depthMeasured) < minDepthDistance) 
+            continue;
 
         vpValidKFs.push_back(pKF);
     }
