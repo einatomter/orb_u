@@ -259,11 +259,11 @@ bool LocalMapping::InitializeUW2(bool bFVPBA, int nMinKF, double minDepthDistanc
 
     {
         if (first)
-            Optimizer::ScaleOptimizationUW2(mpAtlas->GetCurrentMap(), mScale, mRwg, 0.01, 3, false, false);
+            Optimizer::ScaleOptimizationUW2(mpAtlas->GetCurrentMap(), mScale, mRwg, minDepthDistance, 0, false, false);
         else if (!mpCurrentKeyFrame->GetMap()->GetIniertialBA1())
-            Optimizer::ScaleOptimizationUW2(mpAtlas->GetCurrentMap(), mScale, mRwg, 0.03, 3, false, false);
+            Optimizer::ScaleOptimizationUW2(mpAtlas->GetCurrentMap(), mScale, mRwg, minDepthDistance, 0, false, false);
         else
-            Optimizer::ScaleOptimizationUW2(mpAtlas->GetCurrentMap(), mScale, mRwg, 0.05, 3, false, false);
+            Optimizer::ScaleOptimizationUW2(mpAtlas->GetCurrentMap(), mScale, mRwg, minDepthDistance, 0, true, false);
 
         cout << "Map fixed scale: " << mScale << "\n";
         cout << "rotation" << "\n";
@@ -281,11 +281,12 @@ bool LocalMapping::InitializeUW2(bool bFVPBA, int nMinKF, double minDepthDistanc
     }
 
 
-    
+
 
     // Before this line we are not changing the map
     {
         // if (first || !mpCurrentKeyFrame->GetMap()->GetIniertialBA1())
+        // if (first)
             mRwg = Eigen::Matrix3d::Identity();
 
         unique_lock<mutex> lock(mpAtlas->GetCurrentMap()->mMutexMapUpdate);
@@ -310,11 +311,13 @@ bool LocalMapping::InitializeUW2(bool bFVPBA, int nMinKF, double minDepthDistanc
     {
         // Optimizer::FullVIPBA(mpAtlas->GetCurrentMap(), 100, false, mpCurrentKeyFrame->mnId, NULL, false);
         if (first)
-            optOK = Optimizer::UWBA2(mpAtlas->GetCurrentMap(), mScale, mRwg, 100, NULL, mpCurrentKeyFrame->mnId, true, false, false, 0, 0.01);
+            optOK = Optimizer::UWBA2(mpAtlas->GetCurrentMap(), mScale, mRwg, 100, NULL, mpCurrentKeyFrame->mnId, true, false, false, 0, minDepthDistance);
         else if (!mpCurrentKeyFrame->GetMap()->GetIniertialBA1())
-            optOK = Optimizer::UWBA2(mpAtlas->GetCurrentMap(), mScale, mRwg, 100, NULL, mpCurrentKeyFrame->mnId, true, false, false, 0, 0.03);
-        else
-            optOK = Optimizer::UWBA2(mpAtlas->GetCurrentMap(), mScale, mRwg, 100, NULL, mpCurrentKeyFrame->mnId, true, false, false, 0, 0.05);
+        {
+            optOK = Optimizer::UWBA2(mpAtlas->GetCurrentMap(), mScale, mRwg, 100, NULL, mpCurrentKeyFrame->mnId, true, false, false, 0, minDepthDistance);
+        }
+        // else
+        //     optOK = Optimizer::UWBA2(mpAtlas->GetCurrentMap(), mScale, mRwg, 100, NULL, mpCurrentKeyFrame->mnId, true, true, false, 0, minDepthDistance);
     }
 
     cout << "VPBA Scale: " << mScale << "\n";
@@ -324,7 +327,8 @@ bool LocalMapping::InitializeUW2(bool bFVPBA, int nMinKF, double minDepthDistanc
     // if (mpCurrentKeyFrame->GetMap()->GetIniertialBA1())
     // if (!first)
     {
-        if (first || !mpCurrentKeyFrame->GetMap()->GetIniertialBA1())
+        // if (first || !mpCurrentKeyFrame->GetMap()->GetIniertialBA1())
+        if (first)
             mRwg = Eigen::Matrix3d::Identity();
 
         unique_lock<mutex> lock(mpAtlas->GetCurrentMap()->mMutexMapUpdate);
@@ -332,13 +336,22 @@ bool LocalMapping::InitializeUW2(bool bFVPBA, int nMinKF, double minDepthDistanc
         mpAtlas->GetCurrentMap()->ApplyScaledRotation(Twg, mScale, true);        
     }
 
+    if (!first)
+    {
+        mScale=1.0;
+
+        mRwg = Eigen::Matrix3d::Identity();
+        // Optimizer::ScaleOptimizationUW2(mpAtlas->GetCurrentMap(), mScale, mRwg, 0, 0.0, true, false);
+        Optimizer::UWBA2(mpAtlas->GetCurrentMap(), mScale, mRwg, 100, NULL, mpCurrentKeyFrame->mnId, true, true, false, 0, 0.05);
+
+        cout << "VPBA Scale: " << mScale << "\n";
+
+        unique_lock<mutex> lock(mpAtlas->GetCurrentMap()->mMutexMapUpdate);
+        Sophus::SE3f Twg(mRwg.cast<float>().transpose(), Eigen::Vector3f::Zero());
+        mpAtlas->GetCurrentMap()->ApplyScaledRotation(Twg, mScale, true);        
+    }
+
     first = false;
-
-    // if ()
-    // {
-    //     Optimizer::ScaleOptimizationUW2(mpAtlas->GetCurrentMap(), mScale, mRwg, 0.0, nMinKF, true, false);
-
-    // }
 
     std::chrono::steady_clock::time_point t5 = std::chrono::steady_clock::now();
 
@@ -355,87 +368,6 @@ bool LocalMapping::InitializeUW2(bool bFVPBA, int nMinKF, double minDepthDistanc
         ProcessNewKeyFrame();
         vpKF.push_back(mpCurrentKeyFrame);
         lpKF.push_back(mpCurrentKeyFrame);
-    }
-
-    {    // Correct keyframes starting at map first keyframe
-        // list<KeyFrame*> lpKFtoCheck(mpAtlas->GetCurrentMap()->mvpKeyFrameOrigins.begin(),mpAtlas->GetCurrentMap()->mvpKeyFrameOrigins.end());
-
-        // while(!lpKFtoCheck.empty())
-        // {
-        //     KeyFrame* pKF = lpKFtoCheck.front();
-        //     const set<KeyFrame*> sChilds = pKF->GetChilds();
-        //     Sophus::SE3f Twc = pKF->GetPoseInverse();
-        //     for(set<KeyFrame*>::const_iterator sit=sChilds.begin();sit!=sChilds.end();sit++)
-        //     {
-        //         KeyFrame* pChild = *sit;
-        //         if(!pChild || pChild->isBad())
-        //             continue;
-
-        //         if(pChild->mnBAGlobalForKF!=GBAid)
-        //         {
-        //             Sophus::SE3f Tchildc = pChild->GetPose() * Twc;
-        //             pChild->mTcwGBA = Tchildc * pKF->mTcwGBA;
-
-        //             Sophus::SO3f Rcor = pChild->mTcwGBA.so3().inverse() * pChild->GetPose().so3();
-        //             if(pChild->isVelocitySet()){
-        //                 pChild->mVwbGBA = Rcor * pChild->GetVelocity();
-        //             }
-        //             else {
-        //                 Verbose::PrintMess("Child velocity empty!! ", Verbose::VERBOSITY_NORMAL);
-        //             }
-
-        //             pChild->mBiasGBA = pChild->GetImuBias();
-        //             pChild->mnBAGlobalForKF = GBAid;
-
-        //         }
-        //         lpKFtoCheck.push_back(pChild);
-        //     }
-
-        //     pKF->mTcwBefGBA = pKF->GetPose();
-        //     pKF->SetPose(pKF->mTcwGBA);
-
-        //     if(pKF->bImu)
-        //     {
-        //         pKF->mVwbBefGBA = pKF->GetVelocity();
-        //         pKF->SetVelocity(pKF->mVwbGBA);
-        //         pKF->SetNewBias(pKF->mBiasGBA);
-        //     } else {
-        //         cout << "KF " << pKF->mnId << " not set to inertial!! \n";
-        //     }
-
-        //     lpKFtoCheck.pop_front();
-        // }
-
-        // // Correct MapPoints
-        // const vector<MapPoint*> vpMPs = mpAtlas->GetCurrentMap()->GetAllMapPoints();
-
-        // for(size_t i=0; i<vpMPs.size(); i++)
-        // {
-        //     MapPoint* pMP = vpMPs[i];
-
-        //     if(pMP->isBad())
-        //         continue;
-
-        //     if(pMP->mnBAGlobalForKF==GBAid)
-        //     {
-        //         // If optimized by Global BA, just update
-        //         pMP->SetWorldPos(pMP->mPosGBA);
-        //     }
-        //     else
-        //     {
-        //         // Update according to the correction of its reference keyframe
-        //         KeyFrame* pRefKF = pMP->GetReferenceKeyFrame();
-
-        //         if(pRefKF->mnBAGlobalForKF!=GBAid)
-        //             continue;
-
-        //         // Map to non-corrected camera
-        //         Eigen::Vector3f Xc = pRefKF->mTcwBefGBA * pMP->GetWorldPos();
-
-        //         // Backproject using corrected camera
-        //         pMP->SetWorldPos(pRefKF->GetPoseInverse() * Xc);
-        //     }
-        // }
     }
 
     Verbose::PrintMess("Map updated!", Verbose::VERBOSITY_NORMAL);
@@ -933,21 +865,21 @@ void LocalMapping::Run()
                     if(mpCurrentKeyFrame->GetMap()->isScaleUWInitialized() && mpTracker->mState==Tracking::OK) // Enter here everytime local-mapping is called
                     {
                         if(!mpCurrentKeyFrame->GetMap()->GetIniertialBA1()){
-                            bool bOK = InitializeUW2(true, 30, 0.01);
+                            bool bOK = InitializeUW2(true, 30, 0.02);
                             if (bOK)
                             {
                                 mpCurrentKeyFrame->GetMap()->SetIniertialBA1();
                                 cout << "end VP-BA 1, time: " << mpCurrentKeyFrame->mTimeStamp << endl;
                             }
                         }
-                        else if(!mpCurrentKeyFrame->GetMap()->GetIniertialBA2()){
-                            bool bOK = InitializeUW2(true, 40, 0.02);
-                            if (bOK)
-                            {
-                                mpCurrentKeyFrame->GetMap()->SetIniertialBA2();
-                                cout << "end VP-BA 2, time: " << mpCurrentKeyFrame->mTimeStamp << endl;
-                            }
-                        }
+                        // else if(!mpCurrentKeyFrame->GetMap()->GetIniertialBA2()){
+                        //     bool bOK = InitializeUW2(true, 10, 0.05);
+                        //     if (bOK)
+                        //     {
+                        //         mpCurrentKeyFrame->GetMap()->SetIniertialBA2();
+                        //         cout << "end VP-BA 2, time: " << mpCurrentKeyFrame->mTimeStamp << endl;
+                        //     }
+                        // }
                     }
                 }
 
