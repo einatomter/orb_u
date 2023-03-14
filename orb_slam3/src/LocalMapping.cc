@@ -258,7 +258,7 @@ bool LocalMapping::InitializeUW2(bool bFVPBA, int nMinKF, double minDepthDistanc
     std::chrono::steady_clock::time_point t0 = std::chrono::steady_clock::now();
 
     
-    if (!mpCurrentKeyFrame->GetMap()->GetIniertialBA1())
+    // if (!mpCurrentKeyFrame->GetMap()->GetIniertialBA1())
     {
         Optimizer::ScaleOptimizationUW2(mpAtlas->GetCurrentMap(), mScale, mRwg, 0.0, nMinKF, false, false);
         cout << "Map fixed scale: " << mScale << "\n";

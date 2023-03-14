@@ -602,9 +602,12 @@ int Optimizer::PoseOptimizationUW(Frame *pFrame, Frame *pFramePrev, bool isUW)
         eDepth->setDepthAxis(pFrame->mPressureMeas.depthAxis);
         Eigen::Matrix2d depthNoise;
         depthNoise.diagonal() << 2 * UW::DEPTH_NOISE, UW::DEPTH_NOISE;
-        eDepth->setInformation(depthNoise.inverse() * 1e2);
+        eDepth->setInformation(depthNoise.inverse() * 1e1);
 
-        optimizer.addEdge(eDepth);
+        // skip edge if depth reading is spurious
+        eDepth->computeError();
+        if (eDepth->chi2() <= 1e1)
+            optimizer.addEdge(eDepth);
     }
 
 
@@ -988,7 +991,7 @@ bool Optimizer::ScaleOptimizationUW2(Map *pMap, double &scale, Eigen::Matrix3d &
 
         Eigen::Matrix2d depthNoise;
         depthNoise.diagonal() << 2 * UW::DEPTH_NOISE, UW::DEPTH_NOISE;
-        eDepth->setInformation(depthNoise.inverse() * 1e2);
+        eDepth->setInformation(depthNoise.inverse() * 1e3);
 
         // g2o::RobustKernelHuber* rk = new g2o::RobustKernelHuber;
         // eDepth->setRobustKernel(rk);
@@ -1135,7 +1138,7 @@ bool Optimizer::UWBA2(Map* pMap, double &scale, Eigen::Matrix3d &Rwg, int nItera
 
         Eigen::Matrix2d depthNoise;
         depthNoise.diagonal() << 2 * UW::DEPTH_NOISE, UW::DEPTH_NOISE;
-        eDepth->setInformation(depthNoise.inverse() * 1e2);
+        eDepth->setInformation(depthNoise.inverse() * 1e3);
 
         // g2o::RobustKernelHuber* rk = new g2o::RobustKernelHuber;
         // eDepth->setRobustKernel(rk);
@@ -3387,18 +3390,17 @@ void Optimizer::LocalBundleAdjustment(KeyFrame *pKF, bool* pbStopFlag, Map* pMap
             eDepth->setDepthAxis(pKFi->mPressureMeas.depthAxis);
             Eigen::Matrix2d depthNoise;
             depthNoise.diagonal() << 2 * UW::DEPTH_NOISE, UW::DEPTH_NOISE;
-            eDepth->setInformation(depthNoise.inverse() * 1e2);
+            eDepth->setInformation(depthNoise.inverse() * 1e1);
 
             // g2o::RobustKernelHuber* rk = new g2o::RobustKernelHuber;
             // e->setRobustKernel(rk);
             // rk->setDelta(deltaHuber);
 
-            // eDepth->computeError();
-            // if (eDepth->chi2() > 5)
-            //     std::cout << "eDepth error: " << eDepth->error().value() << std::endl;
 
-            optimizer.addEdge(eDepth);
-
+            // skip edge if depth reading is spurious
+            eDepth->computeError();
+            if (eDepth->chi2() <= 1e1)
+                optimizer.addEdge(eDepth);
         }
     }
 
