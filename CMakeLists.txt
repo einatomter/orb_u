@@ -251,3 +251,11 @@ target_link_libraries(ros_mono_inertial_uw
   ${PROJECT_NAME}
   ${catkin_LIBRARIES}
 )
+
+## Create vocabulary
+add_executable(create_vocabulary
+  src/create_vocabulary.cc
+)
+target_link_libraries(create_vocabulary
+  ${PROJECT_NAME}
+)

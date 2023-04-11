@@ -286,6 +286,23 @@ public:
   virtual void load(const cv::FileStorage &fs, 
     const std::string &name = "vocabulary");
   
+  // CUSTOM
+
+  /**
+   * Saves the vocabulary into a binary file
+   * @param filename
+   */
+  bool saveToBinaryFile(const std::string &filename) const;
+
+  /**
+   * Loads the vocabulary from a binary file
+   * @param filename
+   */
+  bool loadFromBinaryFile(const std::string &filename);
+
+
+
+
   /** 
    * Stops those words whose weight is below minWeight.
    * Words are stopped by setting their weight to 0. There are not returned
@@ -1714,12 +1731,13 @@ void TemplatedVocabulary<TDescriptor,F>::load(const cv::FileStorage &fs,
   m_nodes.resize(fn.size() + 1); // +1 to include root
   m_nodes[0].id = 0;
 
-  for(unsigned int i = 0; i < fn.size(); ++i)
+  cv::FileNodeIterator end = fn.end();
+  for(cv::FileNodeIterator it = fn.begin(); it < end; ++it)
   {
-    NodeId nid = (int)fn[i]["nodeId"];
-    NodeId pid = (int)fn[i]["parentId"];
-    WordValue weight = (WordValue)fn[i]["weight"];
-    string d = (string)fn[i]["descriptor"];
+    NodeId nid = (int)(*it)["nodeId"];
+    NodeId pid = (int)(*it)["parentId"];
+    WordValue weight = (WordValue)(*it)["weight"];
+    std::string d = (std::string)(*it)["descriptor"];
     
     m_nodes[nid].id = nid;
     m_nodes[nid].parent = pid;
@@ -1734,10 +1752,10 @@ void TemplatedVocabulary<TDescriptor,F>::load(const cv::FileStorage &fs,
   
   m_words.resize(fn.size());
 
-  for(unsigned int i = 0; i < fn.size(); ++i)
+  for(cv::FileNodeIterator it = fn.begin(); it < end; ++it)
   {
-    NodeId wid = (int)fn[i]["wordId"];
-    NodeId nid = (int)fn[i]["nodeId"];
+    NodeId wid = (int)(*it)["wordId"];
+    NodeId nid = (int)(*it)["nodeId"];
     
     m_nodes[nid].word_id = wid;
     m_words[wid] = &m_nodes[nid];
@@ -1781,6 +1799,97 @@ std::ostream& operator<<(std::ostream &os,
   os << ", Number of words = " << voc.size();
 
   return os;
+}
+
+
+
+// --------------------------------------------------------------------------
+// ADDING FUNCTIONS FROM DBOW2 BINARY PR REQUEST
+// ESSENTIALLY THE SAME AS THE FUNCTIONS ABOVE, BUT LEFT UNTOUCHED TO AVOID POTENTIAL ISSUES
+// --------------------------------------------------------------------------
+
+template<class TDescriptor, class F>
+bool TemplatedVocabulary<TDescriptor,F>::saveToBinaryFile(const std::string &filename) const
+{
+    std::ofstream vocabulary_bin(filename, std::ios::binary);
+    vocabulary_bin.write((char*)&m_k, sizeof(m_k));
+    vocabulary_bin.write((char*)&m_L, sizeof(m_L));
+    vocabulary_bin.write((char*)&m_weighting, sizeof(m_weighting));
+    vocabulary_bin.write((char*)&m_scoring, sizeof(m_scoring));
+    uint64_t vec_size = (uint64_t)m_nodes.size();
+    vocabulary_bin.write((char*)&vec_size, sizeof(uint64_t));
+    for (auto & node : m_nodes)
+    {
+        vocabulary_bin.write((char*)&node.id, sizeof(node.id));
+        vocabulary_bin.write((char*)&node.weight, sizeof(node.weight));
+        vocabulary_bin.write((char*)&node.parent, sizeof(node.parent));
+        vocabulary_bin.write((char*)&node.word_id, sizeof(node.word_id));
+        if (node.descriptor.total() > 0)
+            vocabulary_bin.write((char*)node.descriptor.ptr(), 32);
+        vec_size = (uint64_t)node.children.size();
+        vocabulary_bin.write((char*)&vec_size, sizeof(uint64_t));
+        if (vec_size > 0)
+        {
+            vocabulary_bin.write((char*)node.children.data(), sizeof(node.children[0]) * vec_size);
+        }
+    }
+    vocabulary_bin.close();
+
+    return true;
+}
+
+// --------------------------------------------------------------------------
+
+template<class TDescriptor, class F>
+bool TemplatedVocabulary<TDescriptor, F>::loadFromBinaryFile(const std::string & filename)
+{
+    std::ifstream vocabulary_bin(filename, std::ios::binary);
+    if (!vocabulary_bin.is_open())
+    {
+        throw std::string("Could not open file ") + filename;
+        return false;
+    }
+
+    vocabulary_bin.read((char*)&m_k, sizeof(m_k));
+    vocabulary_bin.read((char*)&m_L, sizeof(m_L));
+    vocabulary_bin.read((char*)&m_weighting, sizeof(m_weighting));
+    vocabulary_bin.read((char*)&m_scoring, sizeof(m_scoring));
+    createScoringObject();
+    uint64_t vec_size = 0;
+    vocabulary_bin.read((char*)&vec_size, sizeof(uint64_t));
+    m_nodes.resize(vec_size);
+    m_words.reserve(pow((double)m_k, (double)m_L + 1));
+
+    int nid = 0;
+    int wid = 0;
+    for (auto & node : m_nodes)
+    {
+        vocabulary_bin.read((char*)&node.id, sizeof(node.id));
+        vocabulary_bin.read((char*)&node.weight, sizeof(node.weight));
+        vocabulary_bin.read((char*)&node.parent, sizeof(node.parent));
+        vocabulary_bin.read((char*)&node.word_id, sizeof(node.word_id));
+        if (nid > 0)
+        {
+            node.descriptor.create(1, 32, CV_8UC1);
+            vocabulary_bin.read((char*)node.descriptor.ptr(), 32);
+        }
+        vec_size = 0;
+        vocabulary_bin.read((char*)&vec_size, sizeof(uint64_t));
+        if (vec_size > 0)
+        {
+            node.children.resize(vec_size);
+            vocabulary_bin.read((char*)node.children.data(), sizeof(node.children[0]) * vec_size);
+        }
+        ++nid;
+        if (node.weight != 0)
+        {
+            m_words.resize(node.word_id + 1);
+            m_words[node.word_id] = &node;
+        }
+    }
+    vocabulary_bin.close();
+
+    return true;
 }
 
 } // namespace DBoW2

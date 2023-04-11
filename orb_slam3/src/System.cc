@@ -211,6 +211,7 @@ System::System(const string &strVocFile, const string &strSettingsFile, const eS
 
     mpVocabulary = new ORBVocabulary();
     bool bVocLoad = mpVocabulary->loadFromBinFile(strVocFile);
+    // bool bVocLoad = mpVocabulary->loadFromBinaryFile(strVocFile);
     if(!bVocLoad)
     {
         cerr << "Wrong path to vocabulary. " << endl;
