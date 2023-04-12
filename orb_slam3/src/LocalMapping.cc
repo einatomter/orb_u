@@ -824,7 +824,7 @@ void LocalMapping::Run()
                 // Initialize pressure 2
                 if(!mpCurrentKeyFrame->GetMap()->isScaleUWInitialized() && !mbInertial && mbIsUW)
                 {
-                    InitializeUW2(true, 20, 0.0);
+                    InitializeUW2(true, 20, 0.01);
                     bInitializing=false;
                 }
 
