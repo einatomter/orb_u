@@ -9,7 +9,7 @@
         <remap from="/pressure"             to="/barometer_node/depth"/>
 
         <!-- Parameters for original ORB-SLAM3 -->
-        <param name="voc_file"      type="string" value="$(find orb_slam3_ros)/orb_slam3/Vocabulary/slam_aqualoc_clahe.txt.bin"/>
+        <param name="voc_file"      type="string" value="$(find orb_slam3_ros)/orb_slam3/Vocabulary/slam_aqualoc.txt.bin"/>
         <param name="settings_file" type="string" value="$(find orb_slam3_ros)/config/Custom/aqualoc_harbor.yaml"/>
 
         <!-- Parameters for ROS -->

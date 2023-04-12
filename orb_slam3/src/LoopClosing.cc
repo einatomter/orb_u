@@ -373,6 +373,9 @@ bool LoopClosing::NewDetectCommonRegions()
 #endif
     if(mnLoopNumCoincidences > 0)
     {
+        // UW
+        std::cout << "LoopClosure: Detecting loop geometric in KF " << mpCurrentKF->mnId << std::endl;
+
         bCheckSpatial = true;
         // Find from the last KF candidates
         Sophus::SE3d mTcl = (mpCurrentKF->GetPose() * mpLoopLastCurrentKF->GetPoseInverse()).cast<double>();
@@ -579,7 +582,7 @@ bool LoopClosing::DetectCommonRegionsFromBoW(std::vector<KeyFrame*> &vpBowCand, 
                                              int &nNumCoincidences, std::vector<MapPoint*> &vpMPs, std::vector<MapPoint*> &vpMatchedMPs)
 {
     int nBoWMatches = 20;
-    int nBoWInliers = 15;
+    int nBoWInliers = 1;
     int nSim3Inliers = 20;
     int nProjMatches = 50;
     int nProjOptMatches = 80;
@@ -690,6 +693,8 @@ bool LoopClosing::DetectCommonRegionsFromBoW(std::vector<KeyFrame*> &vpBowCand, 
 
         if(numBoWMatches >= nBoWMatches) // TODO pick a good threshold
         {
+            // std::cout << "BoW matches: " << numBoWMatches << std::endl;
+
             // Geometric validation
             bool bFixedScale = mbFixScale;
             if(mpTracker->mSensor==System::IMU_MONOCULAR && !mpCurrentKF->GetMap()->GetIniertialBA2())
@@ -706,11 +711,12 @@ bool LoopClosing::DetectCommonRegionsFromBoW(std::vector<KeyFrame*> &vpBowCand, 
             while(!bConverge && !bNoMore)
             {
                 mTcm = solver.iterate(20,bNoMore, vbInliers, nInliers, bConverge);
-                //Verbose::PrintMess("BoW guess: Solver achieve " + to_string(nInliers) + " geometrical inliers among " + to_string(nBoWInliers) + " BoW matches", Verbose::VERBOSITY_DEBUG);
+                //Verbose::PrintMess("BoW guess: Solver achieve " + to_string(nInliers) + " geometrical inliers among " + to_string(nBoWInliers) + " BoW matches", Verbose::VERBOSITY_DEBUG);            
             }
 
             if(bConverge)
             {
+                std::cout << "BoW guess: Solver achieve " << nInliers << " geometrical inliers among " << nBoWInliers << " BoW matches" << std::endl;
                 //std::cout << "Check BoW: SolverSim3 converged" << std::endl;
 
                 //Verbose::PrintMess("BoW guess: Convergende with " + to_string(nInliers) + " geometrical inliers among " + to_string(nBoWInliers) + " BoW matches", Verbose::VERBOSITY_DEBUG);
