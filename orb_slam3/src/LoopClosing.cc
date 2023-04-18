@@ -582,10 +582,10 @@ bool LoopClosing::DetectCommonRegionsFromBoW(std::vector<KeyFrame*> &vpBowCand, 
                                              int &nNumCoincidences, std::vector<MapPoint*> &vpMPs, std::vector<MapPoint*> &vpMatchedMPs)
 {
     int nBoWMatches = 20;
-    int nBoWInliers = 1;
-    int nSim3Inliers = 20;
-    int nProjMatches = 50;
-    int nProjOptMatches = 80;
+    int nBoWInliers = 5;
+    int nSim3Inliers = 10;
+    int nProjMatches = 40;
+    int nProjOptMatches = 50;
 
     set<KeyFrame*> spConnectedKeyFrames = mpCurrentKF->GetConnectedKeyFrames();
 
@@ -693,7 +693,6 @@ bool LoopClosing::DetectCommonRegionsFromBoW(std::vector<KeyFrame*> &vpBowCand, 
 
         if(numBoWMatches >= nBoWMatches) // TODO pick a good threshold
         {
-            // std::cout << "BoW matches: " << numBoWMatches << std::endl;
 
             // Geometric validation
             bool bFixedScale = mbFixScale;
@@ -716,7 +715,8 @@ bool LoopClosing::DetectCommonRegionsFromBoW(std::vector<KeyFrame*> &vpBowCand, 
 
             if(bConverge)
             {
-                std::cout << "BoW guess: Solver achieve " << nInliers << " geometrical inliers among " << nBoWInliers << " BoW matches" << std::endl;
+                std::cout << "\nBoW guess: Solver achieve " << nInliers << " geometrical inliers among " << nBoWInliers << " BoW matches" << std::endl;
+                std::cout << "BoW matches: " << numBoWMatches << std::endl;
                 //std::cout << "Check BoW: SolverSim3 converged" << std::endl;
 
                 //Verbose::PrintMess("BoW guess: Convergende with " + to_string(nInliers) + " geometrical inliers among " + to_string(nBoWInliers) + " BoW matches", Verbose::VERBOSITY_DEBUG);
@@ -759,7 +759,7 @@ bool LoopClosing::DetectCommonRegionsFromBoW(std::vector<KeyFrame*> &vpBowCand, 
                 vector<KeyFrame*> vpMatchedKF;
                 vpMatchedKF.resize(mpCurrentKF->GetMapPointMatches().size(), static_cast<KeyFrame*>(NULL));
                 int numProjMatches = matcher.SearchByProjection(mpCurrentKF, mScw, vpMapPoints, vpKeyFrames, vpMatchedMP, vpMatchedKF, 8, 1.5);
-                //cout <<"BoW: " << numProjMatches << " matches between " << vpMapPoints.size() << " points with coarse Sim3" << endl;
+                cout <<"BoW: " << numProjMatches << " matches between " << vpMapPoints.size() << " points with coarse Sim3" << endl;
 
                 if(numProjMatches >= nProjMatches)
                 {
@@ -770,7 +770,9 @@ bool LoopClosing::DetectCommonRegionsFromBoW(std::vector<KeyFrame*> &vpBowCand, 
                     if(mpTracker->mSensor==System::IMU_MONOCULAR && !mpCurrentKF->GetMap()->GetIniertialBA2())
                         bFixedScale=false;
 
-                    int numOptMatches = Optimizer::OptimizeSim3(mpCurrentKF, pKFi, vpMatchedMP, gScm, 10, mbFixScale, mHessian7x7, true);
+                    int numOptMatches = Optimizer::OptimizeSim3(mpCurrentKF, pKFi, vpMatchedMP, gScm, 15, mbFixScale, mHessian7x7, true);
+
+                    cout << "BoW: " << numOptMatches << " matches after Sim3 optimization" << endl;
 
                     if(numOptMatches >= nSim3Inliers)
                     {
@@ -781,6 +783,8 @@ bool LoopClosing::DetectCommonRegionsFromBoW(std::vector<KeyFrame*> &vpBowCand, 
                         vector<MapPoint*> vpMatchedMP;
                         vpMatchedMP.resize(mpCurrentKF->GetMapPointMatches().size(), static_cast<MapPoint*>(NULL));
                         int numProjOptMatches = matcher.SearchByProjection(mpCurrentKF, mScw, vpMapPoints, vpMatchedMP, 5, 1.0);
+
+                        cout << "BoW: " << numProjOptMatches << " matches after projection" << endl;
 
                         if(numProjOptMatches >= nProjOptMatches)
                         {
