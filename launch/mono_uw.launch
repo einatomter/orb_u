@@ -2,7 +2,7 @@
     <param name="use_sim_time" value="false" />
 
     <!-- Main node -->
-    <node name="orb_slam3" pkg="orb_slam3_ros" type="ros_mono_inertial_uw" output="screen">
+    <node name="orb_slam3" pkg="orb_slam3_ros" type="ros_mono_inertial" output="screen">
         <!-- change the topics according to the dataset -->
         <remap from="/camera/image_raw"     to="/x3/cam/image_raw"/>
         <remap from="/imu"                  to="/x3/imu"/>

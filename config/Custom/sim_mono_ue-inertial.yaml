@@ -13,6 +13,25 @@
 #System.SaveAtlasToFile: "Session_MH01_MH02_MH03_Mono"
 
 #--------------------------------------------------------------------------------------------
+# UW Parameters
+#--------------------------------------------------------------------------------------------
+
+# CLAHE
+CLAHE.Enable: 1         # CLAHE parameters will be ignored if this is disabled
+CLAHE.ClipLimit:  10.0   # 3 - 10
+CLAHE.GridWidth:  6     # 4 - 20, heavy diminishing returns after 10 ish
+CLAHE.GridHeight: 6     # 4 - 20, heavy diminishing returns after 10 ish
+
+# Depth sensor Parameters.
+DSensor.UsePressure: 0  # default 0
+
+# Camera depth axis
+# Axis is normalized when reading parameters
+DSensor.CameraDepthAxis.x: 0.0
+DSensor.CameraDepthAxis.y: 1.0
+DSensor.CameraDepthAxis.z: 0.0
+
+#--------------------------------------------------------------------------------------------
 # Camera Parameters. Adjust them!
 #--------------------------------------------------------------------------------------------
 File.version: "1.0"
