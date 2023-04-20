@@ -23,7 +23,7 @@ CLAHE.GridWidth:  6     # 4 - 20, heavy diminishing returns after 10 ish
 CLAHE.GridHeight: 6     # 4 - 20, heavy diminishing returns after 10 ish
 
 # Depth sensor Parameters.
-DSensor.UsePressure: 0  # default 0
+DSensor.UsePressure: 1  # Specify input type. If 0, input is depth in m, otherwise pressure in pa
 
 # Camera depth axis
 # Axis is normalized when reading parameters
