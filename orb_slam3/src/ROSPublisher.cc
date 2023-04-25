@@ -6,6 +6,7 @@ ROSPublisher::ROSPublisher():
     ros::NodeHandle nh;
     publisher = nh.advertise<std_msgs::Float64>(node_name + "/matched_inliers", 10);
     publisher2 = nh.advertise<std_msgs::Float64>(node_name + "/features_inliers", 10);
+    publisher3 = nh.advertise<orb_slam3_ros::MapInfo>(node_name + "/map_info", 10);
     is_running = true;
     publisher_thread = std::thread(&ROSPublisher::publishLoop, this);
 }
@@ -34,15 +35,23 @@ void ROSPublisher::setTrackedFeatures(int data) {
 // Localmapper
 void ROSPublisher::setMapId(int mapId, int initStep, double timeStamp)
 {
+    orb_slam3_ros::MapInfo msg;
+    msg.map_id = mapId;
+    msg.init_step = initStep;
+    msg.timestamp = timeStamp;
+
     mMapInformation.mMapId = mapId;
     mMapInformation.mInitStep = initStep;
     mMapInformation.mTimestamp = timeStamp;
 
-    std::cout << std::fixed;
-    std::cout << "mMapId: " << mMapInformation.mMapId << " " << 
-                 "Procedure: " << mMapInformation.mInitStep << " " << 
-                 "Timestamp: " << mMapInformation.mTimestamp << std::endl;
-    std::cout << std::defaultfloat;
+
+    // std::cout << std::fixed;
+    // std::cout << "mMapId: " << mMapInformation.mMapId << " " << 
+    //              "Procedure: " << mMapInformation.mInitStep << " " << 
+    //              "Timestamp: " << mMapInformation.mTimestamp << std::endl;
+    // std::cout << std::defaultfloat;
+
+    publisher3.publish(msg);
 }
 
 

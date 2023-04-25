@@ -11,6 +11,8 @@
 #include <std_msgs/Int32.h>
 #include <std_msgs/Float64.h>
 
+#include <orb_slam3_ros/MapInfo.h>
+
 struct MapInformation {
     int mMapId;
     int mInitStep;
@@ -41,6 +43,7 @@ private:
     std::string node_name;
     ros::Publisher publisher;
     ros::Publisher publisher2;
+    ros::Publisher publisher3;
 
     // Tracker variables
     std::mutex data_mutex;

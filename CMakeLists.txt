@@ -66,6 +66,11 @@ add_service_files(
   SaveMap.srv
 )
 
+add_message_files(
+  FILES
+  MapInfo.msg
+)
+
 generate_messages(
   DEPENDENCIES
   std_msgs
@@ -75,6 +80,7 @@ catkin_package (
   CATKIN_DEPENDS roscpp rospy std_msgs cv_bridge image_transport tf sensor_msgs dynamic_reconfigure message_runtime
   LIBRARIES {PROJECT_NAME} libDBoW2 libg2o
 )
+
 
 ## Specify additional locations of header files
 ## Your package locations should be listed before other locations
