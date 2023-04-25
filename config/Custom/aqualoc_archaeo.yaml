@@ -27,8 +27,8 @@ DSensor.UsePressure: 0  # default 0
 
 # Camera depth axis
 # Axis is normalized when reading parameters
-DSensor.CameraDepthAxis.x: 0.5
-DSensor.CameraDepthAxis.y: 0.0
+DSensor.CameraDepthAxis.x: 0.0
+DSensor.CameraDepthAxis.y: 0.5
 DSensor.CameraDepthAxis.z: 0.866025404
 
 #--------------------------------------------------------------------------------------------
