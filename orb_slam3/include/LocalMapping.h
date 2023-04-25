@@ -29,6 +29,7 @@
 
 #include <mutex>
 
+#include "ROSPublisher.h"
 
 namespace ORB_SLAM3
 {
@@ -42,6 +43,8 @@ class LocalMapping
 {
 // UW
 public:
+    void SetROSPublisher(ROSPublisher* ROSPublisher);
+
     bool CalculateScaleUW(double &scale);
     void InitializeUW();  // Unused in favor of an optimization-based algorithm
     bool InitializeUW2(bool bFVPBA, int nMinKF = 15, double minDepthDistance = 0.0);
@@ -58,6 +61,8 @@ public:
     const float mScaleMargin;       // tolerance for scale to be considered OK
     
     Eigen::Vector3d mdepthAxis;
+protected:
+    ROSPublisher* mpROSPublisher;
 // UW end
 public:
     EIGEN_MAKE_ALIGNED_OPERATOR_NEW

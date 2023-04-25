@@ -41,6 +41,7 @@
 #include "Settings.h"
 
 // UW
+#include "ROSPublisher.h"
 #include "PressureTypes.h"
 
 namespace ORB_SLAM3
@@ -92,6 +93,9 @@ public:
     // Returns the camera pose (empty if tracking fails).
     Sophus::SE3f TrackMonoUW(const cv::Mat &im, const double &timestamp, const float &depthVal, const vector<IMU::Point>& vImuMeas = vector<IMU::Point>(), string filename="");
     bool mbIsUW;
+private:
+    ROSPublisher* mpROSPublisher;
+    // std::thread* mptROSPublisher;
 
 // UW END
 public:

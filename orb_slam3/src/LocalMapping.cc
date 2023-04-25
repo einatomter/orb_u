@@ -34,6 +34,11 @@ namespace ORB_SLAM3
 // UW
 // -------------------------------------------------------------------------------------------
 
+void LocalMapping::SetROSPublisher(ROSPublisher *ROSPublisher)
+{
+    mpROSPublisher = ROSPublisher;
+}
+
 bool LocalMapping::CalculateScaleUW(double &scale)
 {
     Map *pMap = mpAtlas->GetCurrentMap();
@@ -273,12 +278,12 @@ bool LocalMapping::InitializeUW2(bool bFVPBA, int nMinKF, double minDepthDistanc
 
     std::chrono::steady_clock::time_point t1 = std::chrono::steady_clock::now();
 
-    if (mScale<1e-1)
-    {
-        cout << "scale too small" << endl;
-        bInitializing=false;
-        return false;
-    }
+    // if (mScale<1e-1)
+    // {
+    //     cout << "scale too small" << endl;
+    //     bInitializing=false;
+    //     return false;
+    // }
 
 
 
@@ -942,6 +947,7 @@ void LocalMapping::Run()
                             {
                                 mpCurrentKeyFrame->GetMap()->SetIniertialBA1();
                                 cout << "end VIP-BA 1, time: " << mpCurrentKeyFrame->mTimeStamp << endl;
+                                mpROSPublisher->setMapId(mpAtlas->GetCurrentMap()->GetId(), 1, mpCurrentKeyFrame->mTimeStamp);
                             }
                         }
                         else if(!mpCurrentKeyFrame->GetMap()->GetIniertialBA2()){
@@ -950,6 +956,7 @@ void LocalMapping::Run()
                             {
                                 mpCurrentKeyFrame->GetMap()->SetIniertialBA2();
                                 cout << "end VIP-BA 2, time: " << mpCurrentKeyFrame->mTimeStamp << endl;
+                                mpROSPublisher->setMapId(mpAtlas->GetCurrentMap()->GetId(), 2, mpCurrentKeyFrame->mTimeStamp);
                             }
                         }
                     }

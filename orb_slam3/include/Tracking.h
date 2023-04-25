@@ -42,6 +42,8 @@
 #include <mutex>
 #include <unordered_set>
 
+#include "ROSPublisher.h"
+
 namespace ORB_SLAM3
 {
 
@@ -61,6 +63,8 @@ public:
     
     void ParseUWParams(Settings *settings);
 
+    void SetROSPublisher(ROSPublisher* pROSPublisher);
+
     void ApplyClahe(const cv::Mat &src, cv::Mat &dst);
     void MonocularInitializationUW();
 
@@ -75,6 +79,8 @@ public:
     double mClaheClipLimit;
     int mClaheGridWidth;
     int mClaheGridHeight;
+protected:
+    ROSPublisher* mpROSPublisher;
 
 // UW END
 public:

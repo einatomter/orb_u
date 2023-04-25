@@ -126,7 +126,9 @@ add_library(${PROJECT_NAME} SHARED
   orb_slam3/src/TwoViewReconstruction.cc
   orb_slam3/src/Config.cc
   orb_slam3/src/Settings.cc
+  # Custom additions
   orb_slam3/src/PressureTypes.cc
+  orb_slam3/src/ROSPublisher.cc
   # header files
   orb_slam3/include/System.h
   orb_slam3/include/Tracking.h
@@ -158,7 +160,9 @@ add_library(${PROJECT_NAME} SHARED
   orb_slam3/include/SerializationUtils.h
   orb_slam3/include/Config.h
   orb_slam3/include/Settings.h
+  # Custom additions
   orb_slam3/include/PressureTypes.h
+  orb_slam3/include/ROSPublisher.h
 )
 
 target_link_libraries(${PROJECT_NAME}
