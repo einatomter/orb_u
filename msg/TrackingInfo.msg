@@ -1,0 +1,2 @@
+int32 tracked_points
+int32 inliers

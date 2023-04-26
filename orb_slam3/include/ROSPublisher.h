@@ -11,8 +11,14 @@
 #include <std_msgs/Int32.h>
 #include <std_msgs/Float64.h>
 
+#include <orb_slam3_ros/TrackingInfo.h>
 #include <orb_slam3_ros/MapInfo.h>
 #include <orb_slam3_ros/LoopClosingInfo.h>
+
+struct TrackingInformation {
+    int trackedPoints;
+    int inliers;
+};
 
 struct MapInformation {
     int mapId;
@@ -37,8 +43,7 @@ public:
     ~ROSPublisher();
 
     // Tracking
-    void SetInliers(int data);
-    void SetTrackedFeatures(int data);
+    void SetTrackingInfo(int trackedPoints, int inliers);
 
     // Mapping
     void SetMapInitInfo(int mapId, int initStep, double timeStamp, double scale = 1.0);
@@ -59,13 +64,13 @@ private:
 
     // ROS variables
     std::string mRosNodeName;
-    ros::Publisher mRosPInliers;
-    ros::Publisher mRosPMapInfo;
-    ros::Publisher mRosPLoopClosing;
+    ros::Publisher mRosPTrackingInfo;
+    ros::Publisher mRosPMapInitInfo;
+    ros::Publisher mRosPLoopClosingInfo;
 
     // Tracking
     std::mutex mMutexInliers;
-    std::queue<int> mqInliers;
+    std::queue<TrackingInformation> mqInliers;
 
     // Mapping
     std::mutex mMutexMapInitInfo;

@@ -63,6 +63,7 @@ find_package(Pangolin REQUIRED)
 
 add_message_files(
   FILES
+  TrackingInfo.msg
   MapInfo.msg
   LoopClosingInfo.msg
 )

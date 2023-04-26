@@ -4,14 +4,15 @@ ROSPublisher::ROSPublisher():
     mRosNodeName("/orb_slam3/analysis") 
 {
     ros::NodeHandle nh;
-    mRosPInliers = nh.advertise<std_msgs::Int32>(mRosNodeName + "/matched_inliers", 10);
-    mRosPMapInfo = nh.advertise<orb_slam3_ros::MapInfo>(mRosNodeName + "/map_info", 2);
-    mRosPLoopClosing = nh.advertise<orb_slam3_ros::LoopClosingInfo>(mRosNodeName + "/loop_closing", 10);
+    mRosPTrackingInfo = nh.advertise<orb_slam3_ros::TrackingInfo>(mRosNodeName + "/tracking_info", 10);
+    mRosPMapInitInfo = nh.advertise<orb_slam3_ros::MapInfo>(mRosNodeName + "/map_init_info", 2);
+    mRosPLoopClosingInfo = nh.advertise<orb_slam3_ros::LoopClosingInfo>(mRosNodeName + "/loop_closing_info", 10);
     bIsRunning = true;
     mtPublisherThread = std::thread(&ROSPublisher::Run, this);
 }
 
-ROSPublisher::~ROSPublisher() {
+ROSPublisher::~ROSPublisher() 
+{
     bIsRunning = false;
     if (mtPublisherThread.joinable()) {
         mtPublisherThread.join();
@@ -20,24 +21,34 @@ ROSPublisher::~ROSPublisher() {
 
 
 // Tracking
-void ROSPublisher::SetInliers(int data) {
+void ROSPublisher::SetTrackingInfo(int trackedPoints, int inliers) 
+{
     std::unique_lock<std::mutex> lock(mMutexInliers);
-    mqInliers.push(data);
+
+    TrackingInformation trackingInformation;
+
+    trackingInformation.trackedPoints = trackedPoints;
+    trackingInformation.inliers = inliers;
+
+    // std::cout << "SetTrackingInfo: " << trackingInformation.trackedPoints << " " << trackingInformation.inliers << std::endl;
+
+    mqInliers.push(trackingInformation);
 }
 
 
-void ROSPublisher::PublishInliers() {
-
+void ROSPublisher::PublishInliers() 
+{
     std::unique_lock<std::mutex> lock(mMutexInliers);
 
     if (!mqInliers.empty()) 
     {
-        int data = mqInliers.front();
+        TrackingInformation data = mqInliers.front();
         mqInliers.pop();
         
-        std_msgs::Int32 msg;
-        msg.data = data;
-        mRosPInliers.publish(msg);
+        orb_slam3_ros::TrackingInfo msg;
+        msg.inliers = data.inliers;
+        msg.tracked_points = data.trackedPoints;
+        mRosPTrackingInfo.publish(msg);
     }
 }
 
@@ -58,7 +69,8 @@ void ROSPublisher::SetMapInitInfo(int mapId, int initStep, double timeStamp, dou
 }
 
 
-void ROSPublisher::PublishMapInitInfo() {
+void ROSPublisher::PublishMapInitInfo() 
+{
     std::unique_lock<std::mutex> lock(mMutexMapInitInfo);
 
     if (!mqMapInitInfo.empty()) 
@@ -73,7 +85,7 @@ void ROSPublisher::PublishMapInitInfo() {
         msg.timestamp = data.timestamp;
         
         // Publish the data
-        mRosPMapInfo.publish(msg);
+        mRosPMapInitInfo.publish(msg);
 
         
         // std::cout << std::fixed;
@@ -104,7 +116,8 @@ void ROSPublisher::SetLoopClosingInfo(int numBoWMatches, int numMatches, int num
     mqLoopClosingInfo.push(loopClosingInfo);
 }
 
-void ROSPublisher::PublishLoopClosingInfo() {
+void ROSPublisher::PublishLoopClosingInfo() 
+{
     std::unique_lock<std::mutex> lock(mMutexLoopClosingInfo);
 
     if (!mqLoopClosingInfo.empty()) 
@@ -121,14 +134,15 @@ void ROSPublisher::PublishLoopClosingInfo() {
         msg.num_kfs = data.numKFs;
         
         // Publish the data
-        mRosPLoopClosing.publish(msg);
+        mRosPLoopClosingInfo.publish(msg);
 
         // std::cout << msg.num_bow_matches << " " << msg.num_matches << " " << msg.num_proj_matches << " " << 
         //              msg.num_opt_matches << " " << msg.num_proj_opt_matches << " " << msg.num_kfs << std::endl;
     }
 }
 
-void ROSPublisher::Run() {
+void ROSPublisher::Run() 
+{
     ros::Rate loop_rate(50);
 
     while (ros::ok() && bIsRunning) {

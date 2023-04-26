@@ -3325,8 +3325,7 @@ bool Tracking::TrackLocalMap()
     // UW: Publishing the inliers
     // std::chrono::steady_clock::time_point time_publishInliers = std::chrono::steady_clock::now();
 
-    mpROSPublisher->SetInliers(mnMatchesInliers);
-    // mpROSPublisher->SetTrackedFeatures(mnMatchesInliers);
+    mpROSPublisher->SetTrackingInfo(mCurrentFrame.N, mnMatchesInliers);
 
     // std::chrono::steady_clock::time_point time_end = std::chrono::steady_clock::now();
     // std::cout << "TLM: inliers " << mnMatchesInliers << " " << std::chrono::duration_cast<std::chrono::duration<double,std::milli>>(time_end - time_publishInliers).count() << std::endl;
