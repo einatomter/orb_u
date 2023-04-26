@@ -1,0 +1,6 @@
+int32 num_bow_matches
+int32 num_matches
+int32 num_proj_matches 
+int32 num_opt_matches
+int32 num_proj_opt_matches
+int32 num_kfs

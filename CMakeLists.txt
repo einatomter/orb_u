@@ -64,6 +64,7 @@ find_package(Pangolin REQUIRED)
 add_message_files(
   FILES
   MapInfo.msg
+  LoopClosingInfo.msg
 )
 
 add_service_files(

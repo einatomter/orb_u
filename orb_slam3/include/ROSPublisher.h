@@ -12,12 +12,22 @@
 #include <std_msgs/Float64.h>
 
 #include <orb_slam3_ros/MapInfo.h>
+#include <orb_slam3_ros/LoopClosingInfo.h>
 
 struct MapInformation {
     int mMapId;
     int mInitStep;
     double scale;
     double mTimestamp;
+};
+
+struct LoopClosingInformation {
+    int numBoWMatches;
+    int numMatches;
+    int numProjMatches;
+    int numOptMatches;
+    int numProjOptMatches;
+    int numKFs;
 };
 
 
@@ -34,7 +44,8 @@ public:
     void setMapId(int mapId, int initStep, double timeStamp, double scale = 1.0);
 
     // Loopclosing
-    void setLoopClosingInfo(int data);
+    void setLoopClosingInfo(int numBoWMatches, int numMatches, int numProjMatches, 
+                            int numOptMatches, int numProjOptMatches, int numKFs);
 
 private:
     void publishMessage(int data);

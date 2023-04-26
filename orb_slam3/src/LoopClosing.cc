@@ -703,13 +703,17 @@ bool LoopClosing::DetectCommonRegionsFromBoW(std::vector<KeyFrame*> &vpBowCand, 
         }
 
         //pMostBoWMatchesKF = vpCovKFi[pMostBoWMatchesKF];
-
-        // UW
-        mpROSPublisher->setLoopClosingInfo(numBoWMatches);
-
+        // UW: ROS parameters
+        int ROSNumBoWMatches = numBoWMatches;
+        int ROSNumMatches = 0;
+        int ROSNumProjMatches = 0;
+        int ROSNumOptMatches = 0;
+        int ROSNumProjOptMatches = 0;
+        int ROSNumKFs = 0;
 
         if(numBoWMatches >= nBoWMatches) // TODO pick a good threshold
         {
+
 
             // Geometric validation
             bool bFixedScale = mbFixScale;
@@ -732,8 +736,7 @@ bool LoopClosing::DetectCommonRegionsFromBoW(std::vector<KeyFrame*> &vpBowCand, 
 
             if(bConverge)
             {
-                std::cout << "\nBoW guess: Solver achieve " << nInliers << " geometrical inliers among " << nBoWInliers << " BoW matches" << std::endl;
-                
+                ROSNumMatches = nInliers;
                 //std::cout << "Check BoW: SolverSim3 converged" << std::endl;
 
                 //Verbose::PrintMess("BoW guess: Convergende with " + to_string(nInliers) + " geometrical inliers among " + to_string(nBoWInliers) + " BoW matches", Verbose::VERBOSITY_DEBUG);
@@ -776,7 +779,9 @@ bool LoopClosing::DetectCommonRegionsFromBoW(std::vector<KeyFrame*> &vpBowCand, 
                 vector<KeyFrame*> vpMatchedKF;
                 vpMatchedKF.resize(mpCurrentKF->GetMapPointMatches().size(), static_cast<KeyFrame*>(NULL));
                 int numProjMatches = matcher.SearchByProjection(mpCurrentKF, mScw, vpMapPoints, vpKeyFrames, vpMatchedMP, vpMatchedKF, 8, 1.5);
-                cout <<"BoW: " << numProjMatches << " matches between " << vpMapPoints.size() << " points with coarse Sim3" << endl;
+                // cout <<"BoW: " << numProjMatches << " matches between " << vpMapPoints.size() << " points with coarse Sim3" << endl;
+
+                ROSNumProjMatches = numProjMatches; // UW
 
                 if(numProjMatches >= nProjMatches)
                 {
@@ -789,7 +794,7 @@ bool LoopClosing::DetectCommonRegionsFromBoW(std::vector<KeyFrame*> &vpBowCand, 
 
                     int numOptMatches = Optimizer::OptimizeSim3(mpCurrentKF, pKFi, vpMatchedMP, gScm, 15, mbFixScale, mHessian7x7, true);
 
-                    cout << "BoW: " << numOptMatches << " matches after Sim3 optimization" << endl;
+                    ROSNumOptMatches = numOptMatches; // UW
 
                     if(numOptMatches >= nSim3Inliers)
                     {
@@ -801,7 +806,7 @@ bool LoopClosing::DetectCommonRegionsFromBoW(std::vector<KeyFrame*> &vpBowCand, 
                         vpMatchedMP.resize(mpCurrentKF->GetMapPointMatches().size(), static_cast<MapPoint*>(NULL));
                         int numProjOptMatches = matcher.SearchByProjection(mpCurrentKF, mScw, vpMapPoints, vpMatchedMP, 5, 1.0);
 
-                        cout << "BoW: " << numProjOptMatches << " matches after projection" << endl;
+                        ROSNumProjOptMatches = numProjOptMatches; // UW
 
                         if(numProjOptMatches >= nProjOptMatches)
                         {
@@ -882,6 +887,8 @@ bool LoopClosing::DetectCommonRegionsFromBoW(std::vector<KeyFrame*> &vpBowCand, 
                                 vpBestMapPoints = vpMapPoints;
                                 vpBestMatchedMapPoints = vpMatchedMP;
                             }
+
+                            ROSNumKFs = nNumKFs; // UW
                         }
                     }
                 }
@@ -890,7 +897,12 @@ bool LoopClosing::DetectCommonRegionsFromBoW(std::vector<KeyFrame*> &vpBowCand, 
             {
                 Verbose::PrintMess("BoW candidate: it don't match with the current one", Verbose::VERBOSITY_DEBUG);
             }*/
+
+            // UW
+            mpROSPublisher->setLoopClosingInfo(ROSNumBoWMatches, ROSNumMatches, ROSNumProjMatches, ROSNumOptMatches, ROSNumProjOptMatches, ROSNumKFs);
         }
+
+
         index++;
     }
 
