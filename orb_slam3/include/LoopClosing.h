@@ -33,6 +33,8 @@
 #include <mutex>
 #include "Thirdparty/g2o/g2o/types/types_seven_dof_expmap.h"
 
+#include "ROSPublisher.h"
+
 namespace ORB_SLAM3
 {
 
@@ -50,6 +52,12 @@ public:
     typedef map<KeyFrame*,g2o::Sim3,std::less<KeyFrame*>,
         Eigen::aligned_allocator<std::pair<KeyFrame* const, g2o::Sim3> > > KeyFrameAndPose;
 
+// UW
+public:
+    void SetROSPublisher(ROSPublisher* ROSPublisher);
+protected:
+    ROSPublisher* mpROSPublisher;
+// UW end
 public:
 
     LoopClosing(Atlas* pAtlas, KeyFrameDatabase* pDB, ORBVocabulary* pVoc,const bool bFixScale, const bool bActiveLC);

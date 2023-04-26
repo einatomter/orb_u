@@ -61,14 +61,14 @@ find_package(catkin REQUIRED COMPONENTS
 find_package(Eigen3 3.1.0 REQUIRED)
 find_package(Pangolin REQUIRED)
 
-add_service_files(
-  FILES
-  SaveMap.srv
-)
-
 add_message_files(
   FILES
   MapInfo.msg
+)
+
+add_service_files(
+  FILES
+  SaveMap.srv
 )
 
 generate_messages(

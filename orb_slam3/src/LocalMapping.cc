@@ -343,17 +343,17 @@ bool LocalMapping::InitializeUW2(bool bFVPBA, int nMinKF, double minDepthDistanc
 
     if (!first)
     {
-        mScale=1.0;
+        double scale = 1.0;
 
         mRwg = Eigen::Matrix3d::Identity();
         // Optimizer::ScaleOptimizationUW2(mpAtlas->GetCurrentMap(), mScale, mRwg, 0, 0.0, true, false);
-        Optimizer::UWBA2(mpAtlas->GetCurrentMap(), mScale, mRwg, 100, NULL, mpCurrentKeyFrame->mnId, true, true, false, 0, 0.05);
+        Optimizer::UWBA2(mpAtlas->GetCurrentMap(), scale, mRwg, 100, NULL, mpCurrentKeyFrame->mnId, true, true, false, 0, 0.05);
 
-        cout << "VPBA Scale: " << mScale << "\n";
+        cout << "VPBA Scale: " << scale << "\n";
 
         unique_lock<mutex> lock(mpAtlas->GetCurrentMap()->mMutexMapUpdate);
         Sophus::SE3f Twg(mRwg.cast<float>().transpose(), Eigen::Vector3f::Zero());
-        mpAtlas->GetCurrentMap()->ApplyScaledRotation(Twg, mScale, true);        
+        mpAtlas->GetCurrentMap()->ApplyScaledRotation(Twg, scale, true);        
     }
 
     first = false;
@@ -829,8 +829,10 @@ void LocalMapping::Run()
                 // Initialize pressure 2
                 if(!mpCurrentKeyFrame->GetMap()->isScaleUWInitialized() && !mbInertial && mbIsUW)
                 {
-                    InitializeUW2(true, 20, 0.01);
+                    bool bOK = InitializeUW2(true, 20, 0.01);
                     bInitializing=false;
+                    if (bOK)
+                        mpROSPublisher->setMapId(mpAtlas->GetCurrentMap()->GetId(), 1, mpCurrentKeyFrame->mTimeStamp, mScale);
                 }
 
 
@@ -849,6 +851,7 @@ void LocalMapping::Run()
                 {
                     InitializeVIP(1e1, 1e3, true, 20, 0.01);
                     // InitializeVIP(1e2, 1e5, true, 10, 0.0);
+                    mpROSPublisher->setMapId(mpAtlas->GetCurrentMap()->GetId(), 1, mpCurrentKeyFrame->mTimeStamp, mScale);
                 }
 
 
@@ -875,6 +878,7 @@ void LocalMapping::Run()
                             {
                                 mpCurrentKeyFrame->GetMap()->SetIniertialBA1();
                                 cout << "end VP-BA 1, time: " << mpCurrentKeyFrame->mTimeStamp << endl;
+                                mpROSPublisher->setMapId(mpAtlas->GetCurrentMap()->GetId(), 2, mpCurrentKeyFrame->mTimeStamp, mScale);
                             }
                         }
                         // else if(!mpCurrentKeyFrame->GetMap()->GetIniertialBA2()){
@@ -947,7 +951,7 @@ void LocalMapping::Run()
                             {
                                 mpCurrentKeyFrame->GetMap()->SetIniertialBA1();
                                 cout << "end VIP-BA 1, time: " << mpCurrentKeyFrame->mTimeStamp << endl;
-                                mpROSPublisher->setMapId(mpAtlas->GetCurrentMap()->GetId(), 1, mpCurrentKeyFrame->mTimeStamp);
+                                mpROSPublisher->setMapId(mpAtlas->GetCurrentMap()->GetId(), 2, mpCurrentKeyFrame->mTimeStamp, mScale);
                             }
                         }
                         else if(!mpCurrentKeyFrame->GetMap()->GetIniertialBA2()){
@@ -956,7 +960,7 @@ void LocalMapping::Run()
                             {
                                 mpCurrentKeyFrame->GetMap()->SetIniertialBA2();
                                 cout << "end VIP-BA 2, time: " << mpCurrentKeyFrame->mTimeStamp << endl;
-                                mpROSPublisher->setMapId(mpAtlas->GetCurrentMap()->GetId(), 2, mpCurrentKeyFrame->mTimeStamp);
+                                mpROSPublisher->setMapId(mpAtlas->GetCurrentMap()->GetId(), 3, mpCurrentKeyFrame->mTimeStamp, mScale);
                             }
                         }
                     }

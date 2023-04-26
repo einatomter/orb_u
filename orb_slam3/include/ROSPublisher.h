@@ -16,6 +16,7 @@
 struct MapInformation {
     int mMapId;
     int mInitStep;
+    double scale;
     double mTimestamp;
 };
 
@@ -25,12 +26,16 @@ public:
     ROSPublisher();
     ~ROSPublisher();
 
-    // Tracker
+    // Tracking
     void publishInliers(int data);
     void setTrackedFeatures(int data);
 
-    // Localmapper
-    void setMapId(int mapId, int initStep, double timeStamp);
+    // Mapping
+    void setMapId(int mapId, int initStep, double timeStamp, double scale = 1.0);
+
+    // Loopclosing
+    void setLoopClosingInfo(int data);
+
 private:
     void publishMessage(int data);
     void publishLoop();
@@ -44,13 +49,16 @@ private:
     ros::Publisher publisher;
     ros::Publisher publisher2;
     ros::Publisher publisher3;
+    ros::Publisher publisher4;
 
-    // Tracker variables
+    // Tracking
     std::mutex data_mutex;
     std::queue<int> data_queue;
 
-    // Localmapper variables
+    // Mapping
     MapInformation mMapInformation;
+
+    // Loopclosing
 };
 
 #endif // ROSPUBLISHER_H

@@ -32,6 +32,19 @@
 namespace ORB_SLAM3
 {
 
+// -------------------------------------------------------------------------------------------
+// UW
+// -------------------------------------------------------------------------------------------
+
+void LoopClosing::SetROSPublisher(ROSPublisher *ROSPublisher)
+{
+    mpROSPublisher = ROSPublisher;
+}
+
+// -------------------------------------------------------------------------------------------
+// UW END
+// -------------------------------------------------------------------------------------------
+
 LoopClosing::LoopClosing(Atlas *pAtlas, KeyFrameDatabase *pDB, ORBVocabulary *pVoc, const bool bFixScale, const bool bActiveLC):
     mbResetRequested(false), mbResetActiveMapRequested(false), mbFinishRequested(false), mbFinished(true), mpAtlas(pAtlas),
     mpKeyFrameDB(pDB), mpORBVocabulary(pVoc), mpMatchedKF(NULL), mLastLoopKFid(0), mbRunningGBA(false), mbFinishedGBA(true),
@@ -691,6 +704,10 @@ bool LoopClosing::DetectCommonRegionsFromBoW(std::vector<KeyFrame*> &vpBowCand, 
 
         //pMostBoWMatchesKF = vpCovKFi[pMostBoWMatchesKF];
 
+        // UW
+        mpROSPublisher->setLoopClosingInfo(numBoWMatches);
+
+
         if(numBoWMatches >= nBoWMatches) // TODO pick a good threshold
         {
 
@@ -716,7 +733,7 @@ bool LoopClosing::DetectCommonRegionsFromBoW(std::vector<KeyFrame*> &vpBowCand, 
             if(bConverge)
             {
                 std::cout << "\nBoW guess: Solver achieve " << nInliers << " geometrical inliers among " << nBoWInliers << " BoW matches" << std::endl;
-                std::cout << "BoW matches: " << numBoWMatches << std::endl;
+                
                 //std::cout << "Check BoW: SolverSim3 converged" << std::endl;
 
                 //Verbose::PrintMess("BoW guess: Convergende with " + to_string(nInliers) + " geometrical inliers among " + to_string(nBoWInliers) + " BoW matches", Verbose::VERBOSITY_DEBUG);
