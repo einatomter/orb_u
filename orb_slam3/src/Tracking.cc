@@ -2193,7 +2193,7 @@ void Tracking::Track()
         }
 
         // UW: Publish to ROS after map initialization
-        mpROSPublisher->setMapId(mpAtlas->GetCurrentMap()->GetId(), 0, mCurrentFrame.mTimeStamp);
+        mpROSPublisher->SetMapInitInfo(mpAtlas->GetCurrentMap()->GetId(), 0, mCurrentFrame.mTimeStamp);
     }
     else
     {
@@ -3325,8 +3325,8 @@ bool Tracking::TrackLocalMap()
     // UW: Publishing the inliers
     // std::chrono::steady_clock::time_point time_publishInliers = std::chrono::steady_clock::now();
 
-    mpROSPublisher->publishInliers(mnMatchesInliers);
-    // mpROSPublisher->setTrackedFeatures(mnMatchesInliers);
+    mpROSPublisher->SetInliers(mnMatchesInliers);
+    // mpROSPublisher->SetTrackedFeatures(mnMatchesInliers);
 
     // std::chrono::steady_clock::time_point time_end = std::chrono::steady_clock::now();
     // std::cout << "TLM: inliers " << mnMatchesInliers << " " << std::chrono::duration_cast<std::chrono::duration<double,std::milli>>(time_end - time_publishInliers).count() << std::endl;

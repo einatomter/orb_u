@@ -15,10 +15,10 @@
 #include <orb_slam3_ros/LoopClosingInfo.h>
 
 struct MapInformation {
-    int mMapId;
-    int mInitStep;
+    int mapId;
+    int initStep;
     double scale;
-    double mTimestamp;
+    double timestamp;
 };
 
 struct LoopClosingInformation {
@@ -37,39 +37,43 @@ public:
     ~ROSPublisher();
 
     // Tracking
-    void publishInliers(int data);
-    void setTrackedFeatures(int data);
+    void SetInliers(int data);
+    void SetTrackedFeatures(int data);
 
     // Mapping
-    void setMapId(int mapId, int initStep, double timeStamp, double scale = 1.0);
+    void SetMapInitInfo(int mapId, int initStep, double timeStamp, double scale = 1.0);
 
     // Loopclosing
-    void setLoopClosingInfo(int numBoWMatches, int numMatches, int numProjMatches, 
+    void SetLoopClosingInfo(int numBoWMatches, int numMatches, int numProjMatches, 
                             int numOptMatches, int numProjOptMatches, int numKFs);
 
 private:
-    void publishMessage(int data);
-    void publishLoop();
+    void PublishInliers();
+    void PublishMapInitInfo();
+    void PublishLoopClosingInfo();
+    void Run();
 
     // thread variables
-    std::thread publisher_thread;
-    bool is_running;
+    std::thread mtPublisherThread;
+    bool bIsRunning;
 
     // ROS variables
-    std::string node_name;
-    ros::Publisher publisher;
-    ros::Publisher publisher2;
-    ros::Publisher publisher3;
-    ros::Publisher publisher4;
+    std::string mRosNodeName;
+    ros::Publisher mRosPInliers;
+    ros::Publisher mRosPMapInfo;
+    ros::Publisher mRosPLoopClosing;
 
     // Tracking
-    std::mutex data_mutex;
-    std::queue<int> data_queue;
+    std::mutex mMutexInliers;
+    std::queue<int> mqInliers;
 
     // Mapping
-    MapInformation mMapInformation;
+    std::mutex mMutexMapInitInfo;
+    std::queue<MapInformation> mqMapInitInfo;
 
     // Loopclosing
+    std::mutex mMutexLoopClosingInfo;
+    std::queue<LoopClosingInformation> mqLoopClosingInfo;
 };
 
 #endif // ROSPUBLISHER_H

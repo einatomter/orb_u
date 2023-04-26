@@ -832,7 +832,7 @@ void LocalMapping::Run()
                     bool bOK = InitializeUW2(true, 20, 0.01);
                     bInitializing=false;
                     if (bOK)
-                        mpROSPublisher->setMapId(mpAtlas->GetCurrentMap()->GetId(), 1, mpCurrentKeyFrame->mTimeStamp, mScale);
+                        mpROSPublisher->SetMapInitInfo(mpAtlas->GetCurrentMap()->GetId(), 1, mpCurrentKeyFrame->mTimeStamp, mScale);
                 }
 
 
@@ -851,7 +851,7 @@ void LocalMapping::Run()
                 {
                     InitializeVIP(1e1, 1e3, true, 20, 0.01);
                     // InitializeVIP(1e2, 1e5, true, 10, 0.0);
-                    mpROSPublisher->setMapId(mpAtlas->GetCurrentMap()->GetId(), 1, mpCurrentKeyFrame->mTimeStamp, mScale);
+                    mpROSPublisher->SetMapInitInfo(mpAtlas->GetCurrentMap()->GetId(), 1, mpCurrentKeyFrame->mTimeStamp, mScale);
                 }
 
 
@@ -878,7 +878,7 @@ void LocalMapping::Run()
                             {
                                 mpCurrentKeyFrame->GetMap()->SetIniertialBA1();
                                 cout << "end VP-BA 1, time: " << mpCurrentKeyFrame->mTimeStamp << endl;
-                                mpROSPublisher->setMapId(mpAtlas->GetCurrentMap()->GetId(), 2, mpCurrentKeyFrame->mTimeStamp, mScale);
+                                mpROSPublisher->SetMapInitInfo(mpAtlas->GetCurrentMap()->GetId(), 2, mpCurrentKeyFrame->mTimeStamp, mScale);
                             }
                         }
                         // else if(!mpCurrentKeyFrame->GetMap()->GetIniertialBA2()){
@@ -951,7 +951,7 @@ void LocalMapping::Run()
                             {
                                 mpCurrentKeyFrame->GetMap()->SetIniertialBA1();
                                 cout << "end VIP-BA 1, time: " << mpCurrentKeyFrame->mTimeStamp << endl;
-                                mpROSPublisher->setMapId(mpAtlas->GetCurrentMap()->GetId(), 2, mpCurrentKeyFrame->mTimeStamp, mScale);
+                                mpROSPublisher->SetMapInitInfo(mpAtlas->GetCurrentMap()->GetId(), 2, mpCurrentKeyFrame->mTimeStamp, mScale);
                             }
                         }
                         else if(!mpCurrentKeyFrame->GetMap()->GetIniertialBA2()){
@@ -960,7 +960,7 @@ void LocalMapping::Run()
                             {
                                 mpCurrentKeyFrame->GetMap()->SetIniertialBA2();
                                 cout << "end VIP-BA 2, time: " << mpCurrentKeyFrame->mTimeStamp << endl;
-                                mpROSPublisher->setMapId(mpAtlas->GetCurrentMap()->GetId(), 3, mpCurrentKeyFrame->mTimeStamp, mScale);
+                                mpROSPublisher->SetMapInitInfo(mpAtlas->GetCurrentMap()->GetId(), 3, mpCurrentKeyFrame->mTimeStamp, mScale);
                             }
                         }
                     }

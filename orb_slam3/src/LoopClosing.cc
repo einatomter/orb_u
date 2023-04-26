@@ -899,7 +899,7 @@ bool LoopClosing::DetectCommonRegionsFromBoW(std::vector<KeyFrame*> &vpBowCand, 
             }*/
 
             // UW
-            mpROSPublisher->setLoopClosingInfo(ROSNumBoWMatches, ROSNumMatches, ROSNumProjMatches, ROSNumOptMatches, ROSNumProjOptMatches, ROSNumKFs);
+            mpROSPublisher->SetLoopClosingInfo(ROSNumBoWMatches, ROSNumMatches, ROSNumProjMatches, ROSNumOptMatches, ROSNumProjOptMatches, ROSNumKFs);
         }
 
 

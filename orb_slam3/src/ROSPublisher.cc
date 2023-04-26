@@ -1,106 +1,141 @@
 #include "ROSPublisher.h"
 
 ROSPublisher::ROSPublisher():
-    node_name("/orb_slam3") 
+    mRosNodeName("/orb_slam3/analysis") 
 {
     ros::NodeHandle nh;
-    publisher = nh.advertise<std_msgs::Int32>(node_name + "/matched_inliers", 10);
-    publisher2 = nh.advertise<std_msgs::Int32>(node_name + "/features_inliers", 10);
-    publisher3 = nh.advertise<orb_slam3_ros::MapInfo>(node_name + "/map_info", 2);
-    publisher4 = nh.advertise<orb_slam3_ros::LoopClosingInfo>(node_name + "/loop_closing", 10);
-    is_running = true;
-    publisher_thread = std::thread(&ROSPublisher::publishLoop, this);
+    mRosPInliers = nh.advertise<std_msgs::Int32>(mRosNodeName + "/matched_inliers", 10);
+    mRosPMapInfo = nh.advertise<orb_slam3_ros::MapInfo>(mRosNodeName + "/map_info", 2);
+    mRosPLoopClosing = nh.advertise<orb_slam3_ros::LoopClosingInfo>(mRosNodeName + "/loop_closing", 10);
+    bIsRunning = true;
+    mtPublisherThread = std::thread(&ROSPublisher::Run, this);
 }
 
 ROSPublisher::~ROSPublisher() {
-    is_running = false;
-    if (publisher_thread.joinable()) {
-        publisher_thread.join();
+    bIsRunning = false;
+    if (mtPublisherThread.joinable()) {
+        mtPublisherThread.join();
     }
 }
 
 
 // Tracking
-void ROSPublisher::publishInliers(int data) {
-    std::unique_lock<std::mutex> lock(data_mutex);
-    data_queue.push(data);
+void ROSPublisher::SetInliers(int data) {
+    std::unique_lock<std::mutex> lock(mMutexInliers);
+    mqInliers.push(data);
 }
 
-void ROSPublisher::setTrackedFeatures(int data) {
-    std_msgs::Int32 msg;
-    msg.data = data;
-    publisher2.publish(msg);
-}
 
+void ROSPublisher::PublishInliers() {
+
+    std::unique_lock<std::mutex> lock(mMutexInliers);
+
+    if (!mqInliers.empty()) 
+    {
+        int data = mqInliers.front();
+        mqInliers.pop();
+        
+        std_msgs::Int32 msg;
+        msg.data = data;
+        mRosPInliers.publish(msg);
+    }
+}
 
 // Mapping
-void ROSPublisher::setMapId(int mapId, int initStep, double timeStamp, double scale)
+void ROSPublisher::SetMapInitInfo(int mapId, int initStep, double timeStamp, double scale)
 {
-    orb_slam3_ros::MapInfo msg;
-    msg.map_id = mapId;
-    msg.init_step = initStep;
-    msg.scale = scale;
-    msg.timestamp = timeStamp;
-
-    mMapInformation.mMapId = mapId;
-    mMapInformation.mInitStep = initStep;
-    mMapInformation.scale = scale;
-    mMapInformation.mTimestamp = timeStamp;
+    std::unique_lock<std::mutex> lock(mMutexMapInitInfo);
 
 
-    // std::cout << std::fixed;
-    // std::cout << "mMapId: " << mMapInformation.mMapId << " " << 
-    //              "Procedure: " << mMapInformation.mInitStep << " " << 
-    //              "Timestamp: " << mMapInformation.mTimestamp << std::endl;
-    // std::cout << std::defaultfloat;
+    MapInformation mapInitInfo;
 
-    publisher3.publish(msg);
-}
+    mapInitInfo.mapId = mapId;
+    mapInitInfo.initStep = initStep;
+    mapInitInfo.scale = scale;
+    mapInitInfo.timestamp = timeStamp;
 
-void ROSPublisher::setLoopClosingInfo(int numBoWMatches, int numMatches, int numProjMatches, 
-                                      int numOptMatches, int numProjOptMatches, int numKFs) {
-
-    orb_slam3_ros::LoopClosingInfo msg;
-    msg.num_bow_matches = numBoWMatches;
-    msg.num_matches = numMatches;
-    msg.num_proj_matches = numProjMatches;
-    msg.num_opt_matches = numOptMatches;
-    msg.num_proj_opt_matches = numProjOptMatches;
-    msg.num_kfs = numKFs;
-
-    // std::cout << "LC: " << numBoWMatches << " BoW matches" << std::endl;
-    // std::cout << "LC: " << numMatches << " geometrical matches" << std::endl;
-    // std::cout << "LC: " << numOptMatches << " matches after Sim3 optimization" << std::endl;
-    // std::cout << "LC: " << numProjOptMatches << " matches after projection" << std::endl;
-    // std::cout << "LC: " << numKFs << " valid keyframes" << std::endl;
-
-    publisher4.publish(msg);
+    mqMapInitInfo.push(mapInitInfo);
 }
 
 
-void ROSPublisher::publishMessage(int data) {
-    std_msgs::Int32 msg;
-    msg.data = data;
-    publisher.publish(msg);
+void ROSPublisher::PublishMapInitInfo() {
+    std::unique_lock<std::mutex> lock(mMutexMapInitInfo);
+
+    if (!mqMapInitInfo.empty()) 
+    {
+        MapInformation data = mqMapInitInfo.front();
+        mqMapInitInfo.pop();
+
+        orb_slam3_ros::MapInfo msg;
+        msg.map_id = data.mapId;
+        msg.init_step = data.initStep;
+        msg.scale = data.scale;
+        msg.timestamp = data.timestamp;
+        
+        // Publish the data
+        mRosPMapInfo.publish(msg);
+
+        
+        // std::cout << std::fixed;
+        // std::cout << "mMapId: " << msg.map_id << " " << 
+        //              "Procedure: " << msg.init_step << " " << 
+        //              "Scale: " << msg.scale << " " <<
+        //              "Timestamp: " << msg.timestamp << std::endl;
+        // std::cout << std::defaultfloat;
+    }
 }
 
-void ROSPublisher::publishLoop() {
+// Loopclosing
+
+void ROSPublisher::SetLoopClosingInfo(int numBoWMatches, int numMatches, int numProjMatches, 
+                                      int numOptMatches, int numProjOptMatches, int numKFs)
+{
+    std::unique_lock<std::mutex> lock(mMutexLoopClosingInfo);
+
+    LoopClosingInformation loopClosingInfo;
+
+    loopClosingInfo.numBoWMatches = numBoWMatches;
+    loopClosingInfo.numMatches = numMatches;
+    loopClosingInfo.numProjMatches = numProjMatches;
+    loopClosingInfo.numOptMatches = numOptMatches;
+    loopClosingInfo.numProjOptMatches = numProjOptMatches;
+    loopClosingInfo.numKFs = numKFs;
+
+    mqLoopClosingInfo.push(loopClosingInfo);
+}
+
+void ROSPublisher::PublishLoopClosingInfo() {
+    std::unique_lock<std::mutex> lock(mMutexLoopClosingInfo);
+
+    if (!mqLoopClosingInfo.empty()) 
+    {
+        LoopClosingInformation data = mqLoopClosingInfo.front();
+        mqLoopClosingInfo.pop();
+
+        orb_slam3_ros::LoopClosingInfo msg;
+        msg.num_bow_matches = data.numBoWMatches;
+        msg.num_matches = data.numMatches;
+        msg.num_proj_matches = data.numProjMatches;
+        msg.num_opt_matches = data.numOptMatches;
+        msg.num_proj_opt_matches = data.numProjOptMatches;
+        msg.num_kfs = data.numKFs;
+        
+        // Publish the data
+        mRosPLoopClosing.publish(msg);
+
+        // std::cout << msg.num_bow_matches << " " << msg.num_matches << " " << msg.num_proj_matches << " " << 
+        //              msg.num_opt_matches << " " << msg.num_proj_opt_matches << " " << msg.num_kfs << std::endl;
+    }
+}
+
+void ROSPublisher::Run() {
     ros::Rate loop_rate(50);
 
-    while (ros::ok() && is_running) {
+    while (ros::ok() && bIsRunning) {
 
-        std::unique_lock<std::mutex> lock(data_mutex);
-
-        if (!data_queue.empty()) 
-        {
-            int data = data_queue.front();
-            data_queue.pop();
-            
-            // Publish the data
-            publishMessage(data);
-        }
-
-        lock.unlock();
+        PublishInliers();
+        PublishMapInitInfo();
+        PublishLoopClosingInfo();
 
         loop_rate.sleep();
     }
