@@ -18,7 +18,7 @@
 
 # CLAHE
 CLAHE.Enable: 1         # CLAHE parameters will be ignored if this is disabled
-CLAHE.ClipLimit:  3.0   # 3 - 10
+CLAHE.ClipLimit:  10.0   # 3 - 10
 CLAHE.GridWidth:  6     # 4 - 20, heavy diminishing returns after 10 ish
 CLAHE.GridHeight: 6     # 4 - 20, heavy diminishing returns after 10 ish
 

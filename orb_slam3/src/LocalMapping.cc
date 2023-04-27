@@ -799,7 +799,11 @@ void LocalMapping::Run()
                     bool bOK = InitializeUWBA(true, 20, 0.01);
                     bInitializing=false;
                     if (bOK)
+                    {
+                        mTinit = mpCurrentKeyFrame->mTimeStamp;
+                        cout << "end VP-BA 1, time: " << mpCurrentKeyFrame->mTimeStamp << endl;
                         mpROSPublisher->SetMapInitInfo(mpAtlas->GetCurrentMap()->GetId(), 1, mpCurrentKeyFrame->mTimeStamp, mScale);
+                    }
                 }
 
 
@@ -816,9 +820,13 @@ void LocalMapping::Run()
                 // Initialize VIP
                 if(!mpCurrentKeyFrame->GetMap()->isImuInitialized() && mbInertial && mbIsUW)
                 {
-                    InitializeVIP(1e1, 1e3, true, 20, 0.01);
                     // InitializeVIP(1e2, 1e5, true, 10, 0.0);
-                    mpROSPublisher->SetMapInitInfo(mpAtlas->GetCurrentMap()->GetId(), 1, mpCurrentKeyFrame->mTimeStamp, mScale);
+                    bool bOK = InitializeVIP(1e1, 1e3, true, 20, 0.01);
+                    if (bOK)
+                    {
+                        mTinit = mpCurrentKeyFrame->mTimeStamp;
+                        mpROSPublisher->SetMapInitInfo(mpAtlas->GetCurrentMap()->GetId(), 1, mpCurrentKeyFrame->mTimeStamp, mScale);
+                    }
                 }
 
 
@@ -839,12 +847,12 @@ void LocalMapping::Run()
                 {
                     if(mpCurrentKeyFrame->GetMap()->isDepthEnabledUW() && mpTracker->mState==Tracking::OK) // Enter here everytime local-mapping is called
                     {
-                        if(!mpCurrentKeyFrame->GetMap()->GetIniertialBA1()){
+                        if(!mpCurrentKeyFrame->GetMap()->GetIniertialBA1() && mpCurrentKeyFrame->mTimeStamp-mTinit > 5.f){
                             bool bOK = InitializeUWBA(true, 30, 0.02);
                             if (bOK)
                             {
                                 mpCurrentKeyFrame->GetMap()->SetIniertialBA1();
-                                cout << "end VP-BA 1, time: " << mpCurrentKeyFrame->mTimeStamp << endl;
+                                cout << "end VP-BA 2, time: " << mpCurrentKeyFrame->mTimeStamp << endl;
                                 mpROSPublisher->SetMapInitInfo(mpAtlas->GetCurrentMap()->GetId(), 2, mpCurrentKeyFrame->mTimeStamp, mScale);
                             }
                         }
@@ -911,17 +919,18 @@ void LocalMapping::Run()
                 {
                     if(mpCurrentKeyFrame->GetMap()->isImuInitialized() && mpTracker->mState==Tracking::OK)
                     {
-                        if(!mpCurrentKeyFrame->GetMap()->GetIniertialBA1()){
+                        if(!mpCurrentKeyFrame->GetMap()->GetIniertialBA1() && mpCurrentKeyFrame->mTimeStamp-mTinit > 5.f){
                             bool bOK = InitializeVIP(1.f, 10.f, true, 20, 0.03);
                             // bool bOK = InitializeVIP(0.f, 0.f, true, 30, 0.01);
                             if (bOK)
                             {
+                                mTinit = mpCurrentKeyFrame->mTimeStamp;
                                 mpCurrentKeyFrame->GetMap()->SetIniertialBA1();
                                 cout << "end VIP-BA 1, time: " << mpCurrentKeyFrame->mTimeStamp << endl;
                                 mpROSPublisher->SetMapInitInfo(mpAtlas->GetCurrentMap()->GetId(), 2, mpCurrentKeyFrame->mTimeStamp, mScale);
                             }
                         }
-                        else if(!mpCurrentKeyFrame->GetMap()->GetIniertialBA2()){
+                        else if(!mpCurrentKeyFrame->GetMap()->GetIniertialBA2() && mpCurrentKeyFrame->mTimeStamp-mTinit > 5.f){
                             bool bOK = InitializeVIP(0.f, 0.f, true, 20, 0.05);
                             if (bOK)
                             {
