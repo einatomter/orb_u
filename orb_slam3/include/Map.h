@@ -68,8 +68,8 @@ class Map
     }
 // UW
 public:
-    void setScaleUWInitialized();
-    bool isScaleUWInitialized();
+    void setDepthEnabled();
+    bool isDepthEnabledUW();
 
 protected:
     bool mbScaleUWInitialized;

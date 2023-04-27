@@ -54,11 +54,11 @@ public:
     bool static UWBA(Map* pMap, double &scale, Eigen::Matrix3d &Rwg, int nIterations=5, bool* pbStopFlag=NULL, 
                      const unsigned long nLoopKF=0, const bool bRobust=true, bool setRwgFixed = false, bool setScaleFixed = false, int minKFs = 15, double minDepthDistance = 0.0);
     
-    bool static ScaleOptimizationUW2(Map *pMap, double &scale, Eigen::Matrix3d &Rwg, 
+    bool static ScaleRotationOptimizationUW(Map *pMap, double &scale, Eigen::Matrix3d &Rwg, 
                                     float minDepthDistance = 0.05, int minKFs = 10, 
                                     bool setRwgFixed = true, bool setScaleFixed = false);
     
-    bool static UWBA2(Map* pMap, double &scale, Eigen::Matrix3d &Rwg, int nIterations=5, bool* pbStopFlag=NULL, 
+    bool static FullVPBA(Map* pMap, double &scale, Eigen::Matrix3d &Rwg, int nIterations=5, bool* pbStopFlag=NULL, 
                      const unsigned long nLoopKF=0, const bool bRobust=true, bool setRwgFixed = false, bool setScaleFixed = false, int minKFs = 15, double minDepthDistance = 0.0);
 
     int static PoseOptimizationUW(Frame* pFrame,  Frame *pFramePrev, bool isUW = false);

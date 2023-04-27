@@ -3105,7 +3105,7 @@ bool Tracking::TrackReferenceKeyFrame()
 
 
     // cout << " TrackReferenceKeyFrame mLastFrame.mTcw:  " << mLastFrame.mTcw << endl;
-    if(mpAtlas->GetCurrentMap()->isScaleUWInitialized() && mbIsUW)  // UW
+    if(mpAtlas->GetCurrentMap()->isDepthEnabledUW() && mbIsUW)  // UW
         Optimizer::PoseOptimizationUW(&mCurrentFrame, &mLastFrame, true);
     else
         Optimizer::PoseOptimization(&mCurrentFrame);
@@ -3277,7 +3277,7 @@ bool Tracking::TrackWithMotionModel()
     }
 
     // Optimize frame pose with all matches
-    if((mpAtlas->GetCurrentMap()->isScaleUWInitialized() && mbIsUW) || (mpAtlas->isImuInitialized() && mbIsUW))  // UW
+    if((mpAtlas->GetCurrentMap()->isDepthEnabledUW() && mbIsUW) || (mpAtlas->isImuInitialized() && mbIsUW))  // UW
         Optimizer::PoseOptimizationUW(&mCurrentFrame, &mLastFrame, true);
     else
         Optimizer::PoseOptimization(&mCurrentFrame);
@@ -3344,7 +3344,7 @@ bool Tracking::TrackLocalMap()
     // if (!mpAtlas->GetCurrentMap()->GetIniertialBA2())
     if (!mpAtlas->isImuInitialized())
     {
-        if(mpAtlas->GetCurrentMap()->isScaleUWInitialized() && mbIsUW)  // UW
+        if(mpAtlas->GetCurrentMap()->isDepthEnabledUW() && mbIsUW)  // UW
             Optimizer::PoseOptimizationUW(&mCurrentFrame, &mLastFrame, true);
         else
             Optimizer::PoseOptimization(&mCurrentFrame);
@@ -3356,7 +3356,7 @@ bool Tracking::TrackLocalMap()
         {
             Verbose::PrintMess("TLM: PoseOptimization ", Verbose::VERBOSITY_DEBUG);
             
-            if(mpAtlas->GetCurrentMap()->isScaleUWInitialized() && mbIsUW)  // UW
+            if(mpAtlas->GetCurrentMap()->isDepthEnabledUW() && mbIsUW)  // UW
                 Optimizer::PoseOptimizationUW(&mCurrentFrame, &mLastFrame, true);
             else
                 Optimizer::PoseOptimization(&mCurrentFrame);

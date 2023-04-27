@@ -276,8 +276,8 @@ bool Optimizer::UWBA(Map* pMap, double &scale, Eigen::Matrix3d &Rwg, int nIterat
         eDepth->setDepthAxis(pKF->mPressureMeas.depthAxis);
         Eigen::Matrix<double, 1, 1> depthNoise(UW::DEPTH_NOISE);
         eDepth->setInformation(depthNoise.inverse());
-        optimizer.addEdge(eDepth);
 
+        optimizer.addEdge(eDepth);
         uwEdges++;
     }
 
@@ -608,6 +608,8 @@ int Optimizer::PoseOptimizationUW(Frame *pFrame, Frame *pFramePrev, bool isUW)
         eDepth->computeError();
         if (eDepth->chi2() <= 1e1)
             optimizer.addEdge(eDepth);
+        else
+            delete eDepth;
     }
 
 
@@ -896,7 +898,7 @@ int Optimizer::PoseOptimizationUW(Frame *pFrame, Frame *pFramePrev, bool isUW)
 
 
 
-bool Optimizer::ScaleOptimizationUW2(Map *pMap, double &scale, Eigen::Matrix3d &Rwg, float minDepthDistance, int minKFs, bool setRwgFixed, bool setScaleFixed)
+bool Optimizer::ScaleRotationOptimizationUW(Map *pMap, double &scale, Eigen::Matrix3d &Rwg, float minDepthDistance, int minKFs, bool setRwgFixed, bool setScaleFixed)
 {
     int its = 200;
     long unsigned int maxKFid = pMap->GetMaxKFid();
@@ -997,7 +999,6 @@ bool Optimizer::ScaleOptimizationUW2(Map *pMap, double &scale, Eigen::Matrix3d &
         // rk->setDelta(deltaHuber);
 
         optimizer.addEdge(eDepth);
-    
     }
 
     // Compute error for different scales
@@ -1013,7 +1014,7 @@ bool Optimizer::ScaleOptimizationUW2(Map *pMap, double &scale, Eigen::Matrix3d &
     return true;
 }
 
-bool Optimizer::UWBA2(Map* pMap, double &scale, Eigen::Matrix3d &Rwg, int nIterations, bool* pbStopFlag, const unsigned long nLoopKF, const bool bRobust, bool setRwgFixed, bool setScaleFixed, int minKFs, double minDepthDistance)
+bool Optimizer::FullVPBA(Map* pMap, double &scale, Eigen::Matrix3d &Rwg, int nIterations, bool* pbStopFlag, const unsigned long nLoopKF, const bool bRobust, bool setRwgFixed, bool setScaleFixed, int minKFs, double minDepthDistance)
 {
     vector<KeyFrame*> vpKFs = pMap->GetAllKeyFrames();
     vector<KeyFrame*> vpValidKFs;
@@ -1148,7 +1149,6 @@ bool Optimizer::UWBA2(Map* pMap, double &scale, Eigen::Matrix3d &Rwg, int nItera
         // rk->setDelta(thHuber2D);
 
         optimizer.addEdge(eDepth);
-        
         uwEdges++;
     }
 
@@ -1300,7 +1300,7 @@ bool Optimizer::UWBA2(Map* pMap, double &scale, Eigen::Matrix3d &Rwg, int nItera
     }
 
     // Optimize!
-    optimizer.setVerbose(false);
+    optimizer.setVerbose(true);
     optimizer.initializeOptimization();
     optimizer.optimize(nIterations);
     Verbose::PrintMess("BA: End of the optimization", Verbose::VERBOSITY_NORMAL);
@@ -1585,7 +1585,6 @@ void Optimizer::VIPOptimizationUW(Map *pMap, Eigen::Matrix3d &Rwg, double &scale
             Eigen::Matrix2d depthNoise;
             depthNoise.diagonal() << 2 * UW::DEPTH_NOISE, UW::DEPTH_NOISE;
             eDepth->setInformation(depthNoise.inverse() * 1e3);
-
             optimizer.addEdge(eDepth);
         }
     }
@@ -2175,7 +2174,11 @@ void Optimizer::BundleAdjustment(const vector<KeyFrame *> &vpKFs, const vector<M
             eDepth->setDepthAxis(pKF->mPressureMeas.depthAxis);
             Eigen::Matrix<double, 1, 1> depthNoise(UW::DEPTH_NOISE);
             eDepth->setInformation(depthNoise.inverse());
-            optimizer.addEdge(eDepth);
+            eDepth->computeError();
+            if (eDepth->chi2() <= 1e1)
+                optimizer.addEdge(eDepth);
+            else
+                delete eDepth;
         }
 
         if(pKF->mnId>maxKFid)
@@ -2898,7 +2901,11 @@ int Optimizer::PoseOptimization(Frame *pFrame, bool isUW)
         eDepth->setDepthAxis(pFrame->mPressureMeas.depthAxis);
         Eigen::Matrix<double, 1, 1> depthNoise(UW::DEPTH_NOISE);
         eDepth->setInformation(depthNoise.inverse());
-        optimizer.addEdge(eDepth);
+        eDepth->computeError();
+        if (eDepth->chi2() <= 1e1)
+            optimizer.addEdge(eDepth);
+        else
+            delete eDepth;
     }
 
     // Set MapPoint vertices
@@ -3295,15 +3302,6 @@ void Optimizer::LocalBundleAdjustment(KeyFrame *pKF, bool* pbStopFlag, Map* pMap
         // UW
         if (isUW)
         {
-            // // Set Depth edge connected to pose
-            // EdgeUWDepth* eDepth = new EdgeUWDepth;
-            // eDepth->setVertex(0, dynamic_cast<g2o::OptimizableGraph::Vertex*>(optimizer.vertex(pKFi->mnId)));
-            // eDepth->setMeasurement(pKFi->mPressureMeas.relativeDepthHeight());
-            // eDepth->setDepthAxis(pKFi->mPressureMeas.depthAxis);
-            // Eigen::Matrix<double, 1, 1> depthNoise(UW::DEPTH_NOISE);
-            // eDepth->setInformation(depthNoise.inverse() * 1e2);
-
-            // optimizer.addEdge(eDepth);
             vpValidKFs.push_back(pKFi);
             // N++;
         }
@@ -3402,8 +3400,10 @@ void Optimizer::LocalBundleAdjustment(KeyFrame *pKF, bool* pbStopFlag, Map* pMap
 
             // skip edge if depth reading is spurious
             eDepth->computeError();
-            if (eDepth->chi2() <= 1e1)
+            if (eDepth->chi2() <= 1e2)
                 optimizer.addEdge(eDepth);
+            else
+                delete eDepth;
         }
     }
 
@@ -4808,7 +4808,12 @@ void Optimizer::LocalInertialBA(KeyFrame *pKF, bool *pbStopFlag, Map *pMap, int&
                 Eigen::Matrix2d depthNoise;
                 depthNoise.diagonal() << 2 * UW::DEPTH_NOISE, UW::DEPTH_NOISE;
                 eDepth->setInformation(depthNoise.inverse() * 1e0);
-                optimizer.addEdge(eDepth);
+
+                eDepth->computeError();
+                if (eDepth->chi2() <= 1e1)
+                    optimizer.addEdge(eDepth);
+                else
+                    delete eDepth;
             }
         }
         else
@@ -6864,7 +6869,11 @@ int Optimizer::PoseInertialOptimizationLastKeyFrame(Frame *pFrame, bool bRecInit
         depthNoise.diagonal() << 2 * UW::DEPTH_NOISE, UW::DEPTH_NOISE;
         // eDepth->setInformation(depthNoise.inverse());
         eDepth->setInformation(depthNoise.inverse() * 1e3);
-        optimizer.addEdge(eDepth);
+        eDepth->computeError();
+        if (eDepth->chi2() <= 1e4)
+            optimizer.addEdge(eDepth);
+        else
+            delete eDepth;
     }
 
     // We perform 4 optimizations, after each optimization we classify observation as inlier/outlier
@@ -7285,7 +7294,11 @@ int Optimizer::PoseInertialOptimizationLastFrame(Frame *pFrame, bool bRecInit, b
         depthNoise.diagonal() << 2 * UW::DEPTH_NOISE, UW::DEPTH_NOISE;
         // eDepth->setInformation(depthNoise.inverse());
         eDepth->setInformation(depthNoise.inverse() * 1e3);
-        optimizer.addEdge(eDepth);
+        eDepth->computeError();
+        if (eDepth->chi2() <= 1e4)
+            optimizer.addEdge(eDepth);
+        else
+            delete eDepth;
     }
 
 

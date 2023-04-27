@@ -30,12 +30,12 @@ long unsigned int Map::nNextId=0;
 // UW
 // -------------------------------------------------------------------------------------------
 
-void Map::setScaleUWInitialized()
+void Map::setDepthEnabled()
 {
     unique_lock<mutex> lock(mMutexMap);
     mbScaleUWInitialized = true;
 }
-bool Map::isScaleUWInitialized()
+bool Map::isDepthEnabledUW()
 {
     unique_lock<mutex> lock(mMutexMap);
     return mbScaleUWInitialized;
