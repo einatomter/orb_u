@@ -235,7 +235,6 @@ void Tracking::MonocularInitializationUW()
     }
 }
 
-
 void Tracking::UpdateFrameUW(const float s, KeyFrame* pCurrentKeyFrame)
 {
     Map * pMap = pCurrentKeyFrame->GetMap();
@@ -286,6 +285,85 @@ bool Tracking::UpdateImuBias()
     }
 }
 
+
+bool Tracking::PredictStateUW()
+{
+    if(!mCurrentFrame.mpPrevFrame)
+    {
+        Verbose::PrintMess("No last frame", Verbose::VERBOSITY_NORMAL);
+        return false;
+    }
+
+    if(mbMapUpdated && mpLastKeyFrame)
+    {
+        float depth12 = mCurrentFrame.mPressureMeas.relativeDepthHeight() - mpLastKeyFrame->mPressureMeas.relativeDepthHeight();
+        // if (depth12 == 0)
+        //     return false;
+
+        const Eigen::Vector3f twb1 = mpLastKeyFrame->GetImuPosition();
+        const Eigen::Matrix3f Rwb1 = mpLastKeyFrame->GetImuRotation();
+        const Eigen::Vector3f Vwb1 = mpLastKeyFrame->GetVelocity();
+
+        const Eigen::Vector3f Gz(0, 0, -IMU::GRAVITY_VALUE);
+        const float t12 = mpImuPreintegratedFromLastKF->dT;
+
+        Eigen::Vector3f twb12 = Vwb1*t12 + 0.5f*t12*t12*Gz+ Rwb1*mpImuPreintegratedFromLastKF->GetDeltaPosition(mpLastKeyFrame->GetImuBias());
+        Eigen::Vector3f Vwb12 = t12*Gz + Rwb1 * mpImuPreintegratedFromLastKF->GetDeltaVelocity(mpLastKeyFrame->GetImuBias());
+
+        float vDepth12 = depth12/t12;
+
+        float tScale = fabs(depth12 / twb12.z());
+        if (tScale > 1.f)
+            tScale = 1.f;
+
+        Eigen::Matrix3f Rwb2 = IMU::NormalizeRotation(Rwb1 * mpImuPreintegratedFromLastKF->GetDeltaRotation(mpLastKeyFrame->GetImuBias()));
+        Eigen::Vector3f twb2 = twb1 + tScale * twb12;
+        Eigen::Vector3f Vwb2 = Vwb1 + Vwb12;
+
+        mCurrentFrame.SetImuPoseVelocity(Rwb2,twb2,Vwb2);
+
+        mCurrentFrame.mImuBias = mpLastKeyFrame->GetImuBias();
+        mCurrentFrame.mPredBias = mCurrentFrame.mImuBias;
+        return true;
+    }
+    else if(!mbMapUpdated)
+    {
+        float depth12 = mCurrentFrame.mPressureMeas.relativeDepthHeight() - mLastFrame.mPressureMeas.relativeDepthHeight();
+        // if (depth12 == 0)
+        //     return false;
+
+        const Eigen::Vector3f twb1 = mLastFrame.GetImuPosition();
+        const Eigen::Matrix3f Rwb1 = mLastFrame.GetImuRotation();
+        const Eigen::Vector3f Vwb1 = mLastFrame.GetVelocity();
+
+        const Eigen::Vector3f Gz(0, 0, -IMU::GRAVITY_VALUE);
+        const float t12 = mCurrentFrame.mpImuPreintegratedFrame->dT;
+
+        Eigen::Vector3f twb12 = Vwb1*t12 + 0.5f*t12*t12*Gz+ Rwb1* mCurrentFrame.mpImuPreintegratedFrame->GetDeltaPosition(mLastFrame.mImuBias);
+        Eigen::Vector3f Vwb12 = t12*Gz + Rwb1 * mCurrentFrame.mpImuPreintegratedFrame->GetDeltaVelocity(mLastFrame.mImuBias);
+
+        if (twb12.z() == 0)
+            return false;
+
+        float tScale = fabs(depth12 / twb12.z());
+        if (tScale > 1.f)
+            tScale = 1.f;
+
+        Eigen::Matrix3f Rwb2 = IMU::NormalizeRotation(Rwb1 * mCurrentFrame.mpImuPreintegratedFrame->GetDeltaRotation(mLastFrame.mImuBias));
+        Eigen::Vector3f twb2 = twb1 + tScale * twb12;
+        Eigen::Vector3f Vwb2 = Vwb1 + Vwb12;
+
+        mCurrentFrame.SetImuPoseVelocity(Rwb2,twb2,Vwb2);
+
+        mCurrentFrame.mImuBias = mLastFrame.mImuBias;
+        mCurrentFrame.mPredBias = mCurrentFrame.mImuBias;
+        return true;
+    }
+    else
+        cout << "not IMU prediction!!" << endl;
+
+    return false;
+}
 
 
 // -------------------------------------------------------------------------------------------
@@ -2261,8 +2339,16 @@ void Tracking::Track()
                     bOK = true;
                     if((mSensor == System::IMU_MONOCULAR || mSensor == System::IMU_STEREO || mSensor == System::IMU_RGBD))
                     {
-                        if(pCurrentMap->isImuInitialized())
+                        if(pCurrentMap->isImuInitialized() && mbIsUW)
+                        {
+                            bool stateOK = PredictStateUW();
+                            if (!stateOK)
+                                PredictStateIMU();
+                        }
+                        else if (pCurrentMap->isImuInitialized())
+                        {
                             PredictStateIMU();
+                        }
                         else
                             bOK = false;
 
@@ -3145,6 +3231,7 @@ bool Tracking::TrackWithMotionModel()
     {
         UpdateImuBias();
         mCurrentFrame.SetPose(mVelocity * mLastFrame.GetPose());
+        // PredictStateUW();
     }
     else if (mpAtlas->isImuInitialized() && (mCurrentFrame.mnId>mnLastRelocFrameId+mnFramesToResetIMU))
     {

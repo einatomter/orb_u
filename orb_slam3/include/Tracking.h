@@ -70,6 +70,7 @@ public:
 
     void UpdateFrameUW(const float s, KeyFrame* pCurrentKeyFrame);
     bool UpdateImuBias();
+    bool PredictStateUW();
 
     bool mbIsUW;
     float mInitDepth;
