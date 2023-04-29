@@ -155,17 +155,15 @@ bool LocalMapping::InitializeVPIterative(int nMinKF, double minDepthDistance)
     double scale = 1.0;
     Eigen::Matrix3d rotation = Eigen::Matrix3d::Identity();
 
-    // optOK = CalculateScaleUW(scale);    // old initialization
-
-    optOK = Optimizer::ScaleRotationOptimizationUW(mpAtlas->GetCurrentMap(), scale, rotation, minDepthDistance, 0, false, false);
-
-    // if (!mpAtlas->GetCurrentMap()->isDepthEnabledUW())
     // {
-    //     cout << "UW init: Calculating initial scale and rotation" << endl;
-    //     optOK = Optimizer::UWBA(mpAtlas->GetCurrentMap(), scale, rotation, 20, NULL, mpCurrentKeyFrame->mnId, true, false, false, nMinKF);
+    //     // old initialization
+    //     optOK = CalculateScaleUW(scale);
+    //     optOK = Optimizer::ScaleRotationOptimizationUW(mpAtlas->GetCurrentMap(), scale, rotation, minDepthDistance, 0, false, true);
     // }
-    // else
-    //     optOK = Optimizer::UWBA(mpAtlas->GetCurrentMap(), scale, rotation, 10, NULL, mpCurrentKeyFrame->mnId, true, true, false, 15, 0.015);
+
+    {
+        optOK = Optimizer::ScaleRotationOptimizationUW(mpAtlas->GetCurrentMap(), scale, rotation, minDepthDistance, 0, false, false);
+    }
 
     if(!optOK)
     {
@@ -252,20 +250,6 @@ bool LocalMapping::InitializeVPIterative(int nMinKF, double minDepthDistance)
 
     mpCurrentKeyFrame->GetMap()->IncreaseChangeIndex();
 
-    // // scale
-    // optOK = Optimizer::ScaleOptimizationUW(mpAtlas->GetCurrentMap(), scale, rotation, 0.1, 3);
-    // if (!optOK)
-    // {
-    //     Optimizer::ScaleOptimizationUW(mpAtlas->GetCurrentMap(), scale, rotation, 0.05, 3);
-    // }
-
-    // {
-    //     unique_lock<mutex> lock(mpAtlas->GetCurrentMap()->mMutexMapUpdate);
-    //     Sophus::SE3f Tgw(Eigen::Matrix3f::Identity(),Eigen::Vector3f::Zero());
-    //     mpAtlas->GetCurrentMap()->ApplyScaledRotation(Tgw,scale,true);
-    //     // mpTracker->UpdateFrameUW(scale, mpCurrentKeyFrame);
-    // }
-
     cout << "UW init: Initialization done!" << endl;
     mpAtlas->GetCurrentMap()->SetIniertialBA1();
     mScaleOKCount = 0;
@@ -325,6 +309,12 @@ bool LocalMapping::InitializeVPBA(bool bFVPBA, int nMinKF, double minDepthDistan
     cout << "Performing Scale optimization UW 2" << endl;
 
     std::chrono::steady_clock::time_point t0 = std::chrono::steady_clock::now();
+
+    // {
+    //     // old initialization
+    //     optOK = CalculateScaleUW(mScale);
+    //     optOK = Optimizer::ScaleRotationOptimizationUW(mpAtlas->GetCurrentMap(), mScale, mRwg, minDepthDistance, 0, false, true);
+    // }
 
     {
         if (!mpAtlas->GetCurrentMap()->isDepthEnabledUW())
@@ -824,25 +814,25 @@ void LocalMapping::Run()
                         InitializeIMU(1e2, 1e5, true);
                 }
 
-                // // Initialize VP
-                // if(!mpCurrentKeyFrame->GetMap()->isDepthEnabledUW() && !mbInertial && mbIsUW)
-                // {
-                //     bool bOK = InitializeVPBA(true, 20, 0.01);
-                //     bInitializing=false;
-                //     if (bOK)
-                //     {
-                //         mTLastInit = mpCurrentKeyFrame->mTimeStamp;
-                //         cout << "end VP-BA 1, time: " << mpCurrentKeyFrame->mTimeStamp << endl;
-                //         mpROSPublisher->SetMapInitInfo(mpAtlas->GetCurrentMap()->GetId(), 1, mpCurrentKeyFrame->mTimeStamp, mScale);
-                //     }
-                // }
-
-                // Initialize VP Iterative
-                if(!mpCurrentKeyFrame->GetMap()->GetIniertialBA1() && !mbInertial && mbIsUW)
+                // Initialize VP
+                if(!mpCurrentKeyFrame->GetMap()->isDepthEnabledUW() && !mbInertial && mbIsUW)
                 {
-                    bool bOK = InitializeVPIterative(20, 0.01);
+                    bool bOK = InitializeVPBA(true, 20, 0.01);
                     bInitializing=false;
+                    if (bOK)
+                    {
+                        mTLastInit = mpCurrentKeyFrame->mTimeStamp;
+                        cout << "end VP-BA 1, time: " << mpCurrentKeyFrame->mTimeStamp << endl;
+                        mpROSPublisher->SetMapInitInfo(mpAtlas->GetCurrentMap()->GetId(), 1, mpCurrentKeyFrame->mTimeStamp, mScale);
+                    }
                 }
+
+                // // Initialize VP Iterative
+                // if(!mpCurrentKeyFrame->GetMap()->GetIniertialBA1() && !mbInertial && mbIsUW)
+                // {
+                //     bool bOK = InitializeVPIterative(20, 0.01);
+                //     bInitializing=false;
+                // }
 
                 // Initialize VIP
                 if(!mpCurrentKeyFrame->GetMap()->isImuInitialized() && mbInertial && mbIsUW)
@@ -915,22 +905,22 @@ void LocalMapping::Run()
                     }
                 }
 
-                // // VP-BA
-                // if (!mbInertial && mbIsUW)
-                // {
-                //     if(mpCurrentKeyFrame->GetMap()->isDepthEnabledUW() && mpTracker->mState==Tracking::OK) // Enter here everytime local-mapping is called
-                //     {
-                //         if(!mpCurrentKeyFrame->GetMap()->GetIniertialBA1() && mpCurrentKeyFrame->mTimeStamp-mTLastInit > 10.f){
-                //             bool bOK = InitializeVPBA(true, 30, 0.02);
-                //             if (bOK)
-                //             {
-                //                 mpCurrentKeyFrame->GetMap()->SetIniertialBA1();
-                //                 cout << "end VP-BA 2, time: " << mpCurrentKeyFrame->mTimeStamp << endl;
-                //                 mpROSPublisher->SetMapInitInfo(mpAtlas->GetCurrentMap()->GetId(), 2, mpCurrentKeyFrame->mTimeStamp, mScale);
-                //             }
-                //         }
-                //     }
-                // }
+                // VP-BA
+                if (!mbInertial && mbIsUW)
+                {
+                    if(mpCurrentKeyFrame->GetMap()->isDepthEnabledUW() && mpTracker->mState==Tracking::OK) // Enter here everytime local-mapping is called
+                    {
+                        if(!mpCurrentKeyFrame->GetMap()->GetIniertialBA1() && mpCurrentKeyFrame->mTimeStamp-mTLastInit > 10.f){
+                            bool bOK = InitializeVPBA(true, 30, 0.02);
+                            if (bOK)
+                            {
+                                mpCurrentKeyFrame->GetMap()->SetIniertialBA1();
+                                cout << "end VP-BA 2, time: " << mpCurrentKeyFrame->mTimeStamp << endl;
+                                mpROSPublisher->SetMapInitInfo(mpAtlas->GetCurrentMap()->GetId(), 2, mpCurrentKeyFrame->mTimeStamp, mScale);
+                            }
+                        }
+                    }
+                }
 
                 // VIP-BA
                 if (mbInertial && mbIsUW)
