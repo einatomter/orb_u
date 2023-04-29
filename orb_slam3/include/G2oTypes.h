@@ -884,11 +884,11 @@ private:
 
 
 // VP
-class EdgeUWDepth3: public g2o::BaseBinaryEdge<2, Eigen::Vector2d, g2o::VertexSE3Expmap, g2o::VertexSE3Expmap>
+class EdgeUWDepthRelative: public g2o::BaseBinaryEdge<2, Eigen::Vector2d, g2o::VertexSE3Expmap, g2o::VertexSE3Expmap>
 {
 public:
     EIGEN_MAKE_ALIGNED_OPERATOR_NEW
-    EdgeUWDepth3(){}
+    EdgeUWDepthRelative(){}
 
     // Set camera orientation relative to depth axis
     void setDepthAxis(Eigen::Vector3d& input){
@@ -919,11 +919,11 @@ private:
 
 
 // VIP
-class EdgeUWDepth2: public g2o::BaseBinaryEdge<2, Eigen::Vector2d, VertexPose, VertexPose>
+class EdgeUWDepthVIP: public g2o::BaseBinaryEdge<2, Eigen::Vector2d, VertexPose, VertexPose>
 {
 public:
     EIGEN_MAKE_ALIGNED_OPERATOR_NEW
-    EdgeUWDepth2(){}
+    EdgeUWDepthVIP(){}
 
     // Set camera orientation relative to depth axis
     void setDepthAxis(const Eigen::Vector3d& input){
@@ -995,57 +995,12 @@ private:
     Eigen::Vector3d _depthAxis;
 };
 
-class EdgeUWDepthGS2: public g2o::BaseMultiEdge<2, Eigen::Vector2d>
-{
-public:
-    EIGEN_MAKE_ALIGNED_OPERATOR_NEW
-    EdgeUWDepthGS2(){
-        resize(4);
-    }
-
-    // Set camera orientation relative to depth axis
-    void setDepthAxis(const Eigen::Vector3d& input){
-        _depthAxis = input;
-    }
-
-    void computeError(){
-        const VertexPose* VP1 = static_cast<const VertexPose*>(_vertices[0]);
-        const VertexPose* VP2 = static_cast<const VertexPose*>(_vertices[1]);
-        const VertexScale* VScale = static_cast<const VertexScale*>(_vertices[2]);
-        const VertexGDir* VGDir = static_cast<const VertexGDir*>(_vertices[3]);
-        Eigen::Vector3d translation1(VP1->estimate().tcw[0]);
-        Eigen::Vector3d translation2(VP2->estimate().tcw[0]);
-
-        
-        double estRelative = ((VGDir->estimate().Rwg.transpose() * (translation2 - translation1)).transpose() * _depthAxis).value();
-        double estAbsolute = ((VGDir->estimate().Rwg.transpose() * translation2).transpose() * _depthAxis).value();
-
-        double er = _measurement.x() - (VScale->estimate() * estRelative);
-        double ea = _measurement.y() - (VScale->estimate() * estAbsolute);
-
-        _error << 0, ea;
-    }
-
-    // // redefined to 1D definition ((x-mu)^2/sigma^2)
-    // virtual double chi2() const{
-    //     // information is already inverse and can therefore be multiplied directly
-    //     // std::cout << "chi2 depth: " << pow(_error(0,0)*information()(0,0), 2) << std::endl;
-    //     return pow(_error(0,0)*information()(0,0), 2);
-    // }
-
-    virtual bool read(std::istream& is){return false;}
-    virtual bool write(std::ostream& os) const{return false;}
-
-private:
-    Eigen::Vector3d _depthAxis;
-};
-
 // VIP
-class EdgeUWDepthGS4: public g2o::BaseMultiEdge<2, Eigen::Vector2d>
+class EdgeUWDepthGSVIP: public g2o::BaseMultiEdge<2, Eigen::Vector2d>
 {
 public:
     EIGEN_MAKE_ALIGNED_OPERATOR_NEW
-    EdgeUWDepthGS4(){
+    EdgeUWDepthGSVIP(){
         resize(4);
     }
 
@@ -1064,7 +1019,6 @@ public:
         Eigen::Vector3d imuOffset = VP2->estimate().tcb[0];
         
         double estRelative = ((VGDir->estimate().Rwg.transpose() * (translation2 - translation1)).transpose() * _depthAxis).value();
-        // TODO: use tbc instead of fixed value
         double estAbsolute = ((VGDir->estimate().Rwg.transpose() * translation2).transpose() * _depthAxis).value();
 
         double er = _measurement.x() - (VScale->estimate() * estRelative);
@@ -1072,77 +1026,6 @@ public:
 
         _error << 0, ea;
     }
-
-    virtual bool read(std::istream& is){return false;}
-    virtual bool write(std::ostream& os) const{return false;}
-
-private:
-    Eigen::Vector3d _depthAxis;
-};
-
-class VertexDepthBias : public g2o::BaseVertex<1, double>
-{
-public:
-    EIGEN_MAKE_ALIGNED_OPERATOR_NEW
-    VertexDepthBias(){
-        setEstimate(0.0);
-    }
-    VertexDepthBias(double ps){
-        setEstimate(ps);
-    }
-
-    virtual bool read(std::istream& is){return false;}
-    virtual bool write(std::ostream& os) const{return false;}
-
-    virtual void setToOriginImpl(){
-        setEstimate(0.0);
-    }
-
-    virtual void oplusImpl(const double *update_){
-        setEstimate(estimate() + *update_);
-    }
-};
-
-class EdgeUWDepthGS3: public g2o::BaseMultiEdge<2, Eigen::Vector2d>
-{
-public:
-    EIGEN_MAKE_ALIGNED_OPERATOR_NEW
-    EdgeUWDepthGS3(){
-        resize(5);
-    }
-
-    // Set camera orientation relative to depth axis
-    void setDepthAxis(const Eigen::Vector3d& input){
-        _depthAxis = input;
-    }
-
-    void computeError(){
-        const VertexPose* VP1 = static_cast<const VertexPose*>(_vertices[0]);
-        const VertexPose* VP2 = static_cast<const VertexPose*>(_vertices[1]);
-        const VertexScale* VScale = static_cast<const VertexScale*>(_vertices[2]);
-        const VertexGDir* VGDir = static_cast<const VertexGDir*>(_vertices[3]);
-        const VertexDepthBias* VD = static_cast<const VertexDepthBias*>(_vertices[4]);
-        // VPose->estimate().rotation().toRotationMatrix();
-        Eigen::Vector3d translation1(VP1->estimate().tcw[0]);
-        Eigen::Vector3d translation2(VP2->estimate().tcw[0]);
-
-        // TODO: use matrix.value() to clean up code
-        
-        double estRelative = ((VGDir->estimate().Rwg.transpose() * (translation2 - translation1)).transpose() * _depthAxis).value();
-        double estAbsolute = ((VGDir->estimate().Rwg.transpose() * translation2).transpose() * _depthAxis).value() - VD->estimate();
-
-        double er = _measurement.x() - (VScale->estimate() * estRelative);
-        double ea = _measurement.y() - (VScale->estimate() * estAbsolute);
-
-        _error << 0, ea;
-    }
-
-    // // redefined to 1D definition ((x-mu)^2/sigma^2)
-    // virtual double chi2() const{
-    //     // information is already inverse and can therefore be multiplied directly
-    //     // std::cout << "chi2 depth: " << pow(_error(0,0)*information()(0,0), 2) << std::endl;
-    //     return pow(_error(0,0)*information()(0,0), 2);
-    // }
 
     virtual bool read(std::istream& is){return false;}
     virtual bool write(std::ostream& os) const{return false;}
@@ -1238,11 +1121,11 @@ private:
 
 
 // VP
-class EdgeUWDepthGSUW2: public g2o::BaseMultiEdge<2, Eigen::Vector2d>
+class EdgeUWDepthGSAbsolute: public g2o::BaseMultiEdge<2, Eigen::Vector2d>
 {
 public:
     EIGEN_MAKE_ALIGNED_OPERATOR_NEW
-    EdgeUWDepthGSUW2(){
+    EdgeUWDepthGSAbsolute(){
         resize(4);
     }
 
@@ -1265,7 +1148,7 @@ public:
         double er = _measurement.x() - (VScale->estimate() * estRelative);
         double ea = _measurement.y() - (VScale->estimate() * estAbsolute);
 
-        _error << er, ea;
+        _error << 0, ea;
     }
 
     virtual bool read(std::istream& is){return false;}
@@ -1276,11 +1159,11 @@ private:
 };
 
 
-class EdgeUWDepthGSUW3: public g2o::BaseMultiEdge<2, Eigen::Vector2d>
+class EdgeUWDepthGSRelative: public g2o::BaseMultiEdge<2, Eigen::Vector2d>
 {
 public:
     EIGEN_MAKE_ALIGNED_OPERATOR_NEW
-    EdgeUWDepthGSUW3(){
+    EdgeUWDepthGSRelative(){
         resize(4);
     }
 

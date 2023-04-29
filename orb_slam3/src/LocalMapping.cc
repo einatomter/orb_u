@@ -109,117 +109,12 @@ bool LocalMapping::CalculateScaleUW(double &scale)
     return true;
 }
 
-void LocalMapping::InitializeUWIterative()
-{
-    if (mbResetRequested)
-        return;
-
-    int nMinKF = 15;
-
-    if(mpAtlas->KeyFramesInMap()<nMinKF)
-        return;
-
-
-    while(CheckNewKeyFrames())
-        ProcessNewKeyFrame();
-
-    bInitializing = true;
-
-    bool optOK = false;
-    double scale = 1.0;
-    Eigen::Matrix3d rotation = Eigen::Matrix3d::Identity();
-
-    // optOK = CalculateScaleUW(scale);    // old initialization
-
-
-
-    if (!mpAtlas->GetCurrentMap()->isDepthEnabledUW())
-    {
-        cout << "UW init: Calculating initial scale and rotation" << endl;
-        optOK = Optimizer::UWBA(mpAtlas->GetCurrentMap(), scale, rotation, 20, NULL, mpCurrentKeyFrame->mnId, true, false, false, nMinKF);
-    }
-    else
-        optOK = Optimizer::UWBA(mpAtlas->GetCurrentMap(), scale, rotation, 10, NULL, mpCurrentKeyFrame->mnId, true, true, false, 15, 0.015);
-
-    if(!optOK)
-    {
-        // cout << "Too few valid keyframes" << endl;
-        return;
-    }
-
-    if(scale < 1e-1) // 1e-1
-    {
-        // cout << "Scale too small" << endl;
-        return;
-    }
-
-    // cout << "scale and rotation: " << scale << endl;
-    // cout << rotation << endl;
-
-    // Check if scale is consistent
-    if(fabs(scale - 1.0) < mScaleMargin)
-        mScaleOKCount++;
-    else
-        mScaleOKCount = 0;
-
-    // Before this line we are not changing the map
-    if(mScaleOKCount < mScaleOKThreshold)
-    {
-        if ((fabs(scale-1.f) > 0.002) || !mpAtlas->GetCurrentMap()->isDepthEnabledUW())
-        {
-            unique_lock<mutex> lock(mpAtlas->GetCurrentMap()->mMutexMapUpdate);
-            Sophus::SE3f Tgw(rotation.transpose().cast<float>(),Eigen::Vector3f::Zero());
-            mpAtlas->GetCurrentMap()->ApplyScaledRotation(Tgw,scale,true);
-            // mpTracker->UpdateFrameUW(scale, mpCurrentKeyFrame);  // TODO: remove function, doesn't seem to do anything
-            
-            if (!mpAtlas->GetCurrentMap()->isDepthEnabledUW())
-            mpAtlas->GetCurrentMap()->setDepthEnabled();
-        }
-
-        return;
-    }
-
-    cout << "UW init: Calculating final scale and rotation" << endl;
-
-    // rotation
-    Optimizer::UWBA(mpAtlas->GetCurrentMap(), scale, rotation, 30, NULL, mpCurrentKeyFrame->mnId, true, false, true);
-    {
-        unique_lock<mutex> lock(mpAtlas->GetCurrentMap()->mMutexMapUpdate);
-        Sophus::SE3f Tgw(rotation.transpose().cast<float>(),Eigen::Vector3f::Zero());
-        mpAtlas->GetCurrentMap()->ApplyScaledRotation(Tgw,scale,true);
-    }
-
-    scale = 1.0;
-    rotation = Eigen::Matrix3d::Identity();
-
-    // scale
-    optOK = Optimizer::ScaleOptimizationUW(mpAtlas->GetCurrentMap(), scale, rotation, 0.1, 3);
-    if (!optOK)
-    {
-        Optimizer::ScaleOptimizationUW(mpAtlas->GetCurrentMap(), scale, rotation, 0.05, 3);
-    }
-
-    {
-        unique_lock<mutex> lock(mpAtlas->GetCurrentMap()->mMutexMapUpdate);
-        Sophus::SE3f Tgw(Eigen::Matrix3f::Identity(),Eigen::Vector3f::Zero());
-        mpAtlas->GetCurrentMap()->ApplyScaledRotation(Tgw,scale,true);
-        // mpTracker->UpdateFrameUW(scale, mpCurrentKeyFrame);
-    }
-
-    cout << "UW init: Initialization done!" << endl;
-    mpAtlas->GetCurrentMap()->SetIniertialBA1();
-    mScaleOKCount = 0;
-
-    return;
-}
-
-
-bool LocalMapping::InitializeUWBA(bool bFVPBA, int nMinKF, double minDepthDistance)
+bool LocalMapping::InitializeVPIterative(int nMinKF, double minDepthDistance)
 {
     if (mbResetRequested)
         return false;
 
-    float minTime = 2.0;
+    float minTime = 10.0;
     int nValidKFs = 0;
     bool optOK = false;
 
@@ -244,6 +139,10 @@ bool LocalMapping::InitializeUWBA(bool bFVPBA, int nMinKF, double minDepthDistan
     if(vpKF.size()<nMinKF || nValidKFs < nMinKF)
         return false;
 
+    mFirstTs=vpKF.front()->mTimeStamp;
+    if(mpCurrentKeyFrame->mTimeStamp-mFirstTs<minTime)
+        return false;
+
     bInitializing = true;
 
     while(CheckNewKeyFrames())
@@ -253,7 +152,170 @@ bool LocalMapping::InitializeUWBA(bool bFVPBA, int nMinKF, double minDepthDistan
         lpKF.push_back(mpCurrentKeyFrame);
     }
 
-    const int N = vpKF.size();
+    double scale = 1.0;
+    Eigen::Matrix3d rotation = Eigen::Matrix3d::Identity();
+
+    // optOK = CalculateScaleUW(scale);    // old initialization
+
+    optOK = Optimizer::ScaleRotationOptimizationUW(mpAtlas->GetCurrentMap(), scale, rotation, minDepthDistance, 0, false, false);
+
+    // if (!mpAtlas->GetCurrentMap()->isDepthEnabledUW())
+    // {
+    //     cout << "UW init: Calculating initial scale and rotation" << endl;
+    //     optOK = Optimizer::UWBA(mpAtlas->GetCurrentMap(), scale, rotation, 20, NULL, mpCurrentKeyFrame->mnId, true, false, false, nMinKF);
+    // }
+    // else
+    //     optOK = Optimizer::UWBA(mpAtlas->GetCurrentMap(), scale, rotation, 10, NULL, mpCurrentKeyFrame->mnId, true, true, false, 15, 0.015);
+
+    if(!optOK)
+    {
+        // cout << "Too few valid keyframes" << endl;
+        return false;
+    }
+
+    if(scale < 1e-1) // 1e-1
+    {
+        // cout << "Scale too small" << endl;
+        return false;
+    }
+
+    // cout << "scale and rotation: " << scale << endl;
+    // cout << rotation << endl;
+
+    // Check if scale is consistent
+    if(fabs(scale - 1.0) < mScaleMargin)
+        mScaleOKCount++;
+    else
+        mScaleOKCount = 0;
+
+    // Before this line we are not changing the map
+    if(mScaleOKCount < mScaleOKThreshold)
+    {
+        if ((fabs(scale-1.f) > 0.002) || !mpAtlas->GetCurrentMap()->isDepthEnabledUW())
+        {
+            rotation = Eigen::Matrix3d::Identity();
+
+            unique_lock<mutex> lock(mpAtlas->GetCurrentMap()->mMutexMapUpdate);
+            Sophus::SE3f Twg(rotation.cast<float>().transpose(), Eigen::Vector3f::Zero());
+            mpAtlas->GetCurrentMap()->ApplyScaledRotation(Twg, scale, true);
+
+            cout << "Map fixed scale: " << scale << "\n";
+            
+            if (!mpAtlas->GetCurrentMap()->isDepthEnabledUW())
+                mpAtlas->GetCurrentMap()->setDepthEnabled();
+        }
+
+        bInitializing = false;
+
+        return true;
+    }
+    else
+    {
+        cout << "UW init: Calculating final scale and rotation" << endl;
+        unique_lock<mutex> lock(mpAtlas->GetCurrentMap()->mMutexMapUpdate);
+        Sophus::SE3f Twg(rotation.cast<float>().transpose(), Eigen::Vector3f::Zero());
+        mpAtlas->GetCurrentMap()->ApplyScaledRotation(Twg, scale, true);
+
+        cout << "Map fixed scale: " << scale << "\n";
+        cout << "rotation" << "\n";
+        cout << rotation.transpose() << "\n" << endl;
+    }
+
+
+
+    scale = 1.0;
+    rotation = Eigen::Matrix3d::Identity();
+
+    optOK = Optimizer::FullVPBA(mpAtlas->GetCurrentMap(), scale, rotation, 100, NULL, mpCurrentKeyFrame->mnId, true, true, true, 0, 0);
+
+
+    // Process keyframes in the queue
+    while(CheckNewKeyFrames())
+    {
+        ProcessNewKeyFrame();
+        vpKF.push_back(mpCurrentKeyFrame);
+        lpKF.push_back(mpCurrentKeyFrame);
+    }
+
+    mnKFs=vpKF.size();
+    mIdxInit++;
+
+    for(list<KeyFrame*>::iterator lit = mlNewKeyFrames.begin(), lend=mlNewKeyFrames.end(); lit!=lend; lit++)
+    {
+        (*lit)->SetBadFlag();
+        delete *lit;
+    }
+    mlNewKeyFrames.clear();
+
+    mpTracker->mState=Tracking::OK;
+    bInitializing = false;
+
+    mpCurrentKeyFrame->GetMap()->IncreaseChangeIndex();
+
+    // // scale
+    // optOK = Optimizer::ScaleOptimizationUW(mpAtlas->GetCurrentMap(), scale, rotation, 0.1, 3);
+    // if (!optOK)
+    // {
+    //     Optimizer::ScaleOptimizationUW(mpAtlas->GetCurrentMap(), scale, rotation, 0.05, 3);
+    // }
+
+    // {
+    //     unique_lock<mutex> lock(mpAtlas->GetCurrentMap()->mMutexMapUpdate);
+    //     Sophus::SE3f Tgw(Eigen::Matrix3f::Identity(),Eigen::Vector3f::Zero());
+    //     mpAtlas->GetCurrentMap()->ApplyScaledRotation(Tgw,scale,true);
+    //     // mpTracker->UpdateFrameUW(scale, mpCurrentKeyFrame);
+    // }
+
+    cout << "UW init: Initialization done!" << endl;
+    mpAtlas->GetCurrentMap()->SetIniertialBA1();
+    mScaleOKCount = 0;
+
+    return true;
+}
+
+
+bool LocalMapping::InitializeVPBA(bool bFVPBA, int nMinKF, double minDepthDistance)
+{
+    if (mbResetRequested)
+        return false;
+
+    float minTime = 5.0;
+    int nValidKFs = 0;
+    bool optOK = false;
+
+    if(mpAtlas->KeyFramesInMap()<nMinKF)
+        return false;
+
+    // Retrieve all keyframe in temporal order
+    list<KeyFrame*> lpKF;
+    KeyFrame* pKF = mpCurrentKeyFrame;
+    while(pKF->mPrevKF)
+    {
+        if (fabs(pKF->mPressureMeas.relativeDepthHeight()) > minDepthDistance)
+            nValidKFs++;
+
+        lpKF.push_front(pKF);
+        pKF = pKF->mPrevKF;
+    }
+    lpKF.push_front(pKF);
+    vector<KeyFrame*> vpKF(lpKF.begin(),lpKF.end());
+
+    // if(vpKF.size()<nMinKF)
+    if(vpKF.size()<nMinKF || nValidKFs < nMinKF)
+        return false;
+
+    mFirstTs=vpKF.front()->mTimeStamp;
+    if(mpCurrentKeyFrame->mTimeStamp-mFirstTs<minTime)
+        return false;
+
+    bInitializing = true;
+
+    while(CheckNewKeyFrames())
+    {
+        ProcessNewKeyFrame();
+        vpKF.push_back(mpCurrentKeyFrame);
+        lpKF.push_back(mpCurrentKeyFrame);
+    }
 
     mRwg = Eigen::Matrix3d::Identity();
     mScale=1.0;
@@ -278,35 +340,6 @@ bool LocalMapping::InitializeUWBA(bool bFVPBA, int nMinKF, double minDepthDistan
 
     std::chrono::steady_clock::time_point t1 = std::chrono::steady_clock::now();
 
-    // Before this line we are not changing the map
-    {
-        mRwg = Eigen::Matrix3d::Identity();
-
-        unique_lock<mutex> lock(mpAtlas->GetCurrentMap()->mMutexMapUpdate);
-        if ((fabs(mScale - 1.f) > 0.00001) || !mbMonocular) {
-            Sophus::SE3f Twg(mRwg.cast<float>().transpose(), Eigen::Vector3f::Zero());
-            mpAtlas->GetCurrentMap()->ApplyScaledRotation(Twg, mScale, true);
-        }
-        
-    }
-
-    mRwg = Eigen::Matrix3d::Identity();
-    mScale=1.0;
-
-
-    std::chrono::steady_clock::time_point t4 = std::chrono::steady_clock::now();
-    if (bFVPBA)
-    {
-        // Optimizer::FullVIPBA(mpAtlas->GetCurrentMap(), 100, false, mpCurrentKeyFrame->mnId, NULL, false);
-        if (!mpAtlas->GetCurrentMap()->isDepthEnabledUW())
-            optOK = Optimizer::FullVPBA(mpAtlas->GetCurrentMap(), mScale, mRwg, 100, NULL, mpCurrentKeyFrame->mnId, true, false, false, 0, minDepthDistance);
-        else if (!mpCurrentKeyFrame->GetMap()->GetIniertialBA1())
-        {
-            optOK = Optimizer::FullVPBA(mpAtlas->GetCurrentMap(), mScale, mRwg, 100, NULL, mpCurrentKeyFrame->mnId, true, false, false, 0, minDepthDistance);
-        }
-    }
-
-
     cout << "opt status: " << optOK << "\n";
     cout << "VPBA Scale: " << mScale << "\n";
     cout << "rotation" << "\n";
@@ -321,17 +354,16 @@ bool LocalMapping::InitializeUWBA(bool bFVPBA, int nMinKF, double minDepthDistan
         mpAtlas->GetCurrentMap()->ApplyScaledRotation(Twg, mScale, true);        
     }
 
+    mRwg = Eigen::Matrix3d::Identity();
+    mScale=1.0;
+
+    if (mpAtlas->GetCurrentMap()->isDepthEnabledUW())
+        optOK = Optimizer::FullVPBA(mpAtlas->GetCurrentMap(), mScale, mRwg, 100, NULL, mpCurrentKeyFrame->mnId, true, true, true, 0, 0);
+
     if (!mpAtlas->GetCurrentMap()->isDepthEnabledUW())
         mpAtlas->GetCurrentMap()->setDepthEnabled();
 
     std::chrono::steady_clock::time_point t5 = std::chrono::steady_clock::now();
-
-    Verbose::PrintMess("Global Bundle Adjustment finished\nUpdating map ...", Verbose::VERBOSITY_NORMAL);
-
-    // Get Map Mutex
-    unique_lock<mutex> lock(mpAtlas->GetCurrentMap()->mMutexMapUpdate);
-
-    unsigned long GBAid = mpCurrentKeyFrame->mnId;
 
     // Process keyframes in the queue
     while(CheckNewKeyFrames())
@@ -340,8 +372,6 @@ bool LocalMapping::InitializeUWBA(bool bFVPBA, int nMinKF, double minDepthDistan
         vpKF.push_back(mpCurrentKeyFrame);
         lpKF.push_back(mpCurrentKeyFrame);
     }
-
-    Verbose::PrintMess("Map updated!", Verbose::VERBOSITY_NORMAL);
 
     mnKFs=vpKF.size();
     mIdxInit++;
@@ -391,9 +421,9 @@ bool LocalMapping::InitializeVIP(float priorG, float priorA, bool bFIBA, int nMi
     if(vpKF.size()<nMinKF || nValidKFs < nMinKF)
         return false;
 
-    // mFirstTs=vpKF.front()->mTimeStamp;
-    // if(mpCurrentKeyFrame->mTimeStamp-mFirstTs<minTime)
-    //     return false;
+    mFirstTs=vpKF.front()->mTimeStamp;
+    if(mpCurrentKeyFrame->mTimeStamp-mFirstTs<minTime)
+        return false;
 
     
 
@@ -638,7 +668,7 @@ LocalMapping::LocalMapping(System* pSys, Atlas *pAtlas, const float bMonocular, 
     mpSystem(pSys), mbMonocular(bMonocular), mbInertial(bInertial), mbResetRequested(false), mbResetRequestedActiveMap(false), mbFinishRequested(false), mbFinished(true), mpAtlas(pAtlas), bInitializing(false),
     mbAbortBA(false), mbStopped(false), mbStopRequested(false), mbNotStop(false), mbAcceptKeyFrames(true),
     mIdxInit(0), mScale(1.0), mInitSect(0), mbNotBA1(true), mbNotBA2(true), mIdxIteration(0), infoInertial(Eigen::MatrixXd::Zero(9,9)),
-    mbIsUW(bIsUW), mScaleOKCount(0), mScaleOKThreshold(15), mScaleMargin(0.02)
+    mbIsUW(bIsUW), mTLastInit(0.0), mScaleOKCount(0), mScaleOKThreshold(10), mScaleMargin(0.02)
 {
     mnMatchesInliers = 0;
 
@@ -785,29 +815,6 @@ void LocalMapping::Run()
                 // Initialization procedures
                 // -------------------------------------------------------------------------------------------
 
-
-                // Initialize pressure
-                // if((!mpCurrentKeyFrame->GetMap()->isDepthEnabledUW()) && !mbInertial && mbIsUW)
-                // {
-                //     InitializeUW();
-                //     bInitializing=false;
-                // }
-
-                // Initialize pressure 2
-                if(!mpCurrentKeyFrame->GetMap()->isDepthEnabledUW() && !mbInertial && mbIsUW)
-                {
-                    bool bOK = InitializeUWBA(true, 20, 0.01);
-                    bInitializing=false;
-                    if (bOK)
-                    {
-                        mTinit = mpCurrentKeyFrame->mTimeStamp;
-                        cout << "end VP-BA 1, time: " << mpCurrentKeyFrame->mTimeStamp << endl;
-                        mpROSPublisher->SetMapInitInfo(mpAtlas->GetCurrentMap()->GetId(), 1, mpCurrentKeyFrame->mTimeStamp, mScale);
-                    }
-                }
-
-
-
                 // Initialize IMU here
                 if(!mpCurrentKeyFrame->GetMap()->isImuInitialized() && mbInertial && !mbIsUW)
                 {
@@ -817,6 +824,26 @@ void LocalMapping::Run()
                         InitializeIMU(1e2, 1e5, true);
                 }
 
+                // // Initialize VP
+                // if(!mpCurrentKeyFrame->GetMap()->isDepthEnabledUW() && !mbInertial && mbIsUW)
+                // {
+                //     bool bOK = InitializeVPBA(true, 20, 0.01);
+                //     bInitializing=false;
+                //     if (bOK)
+                //     {
+                //         mTLastInit = mpCurrentKeyFrame->mTimeStamp;
+                //         cout << "end VP-BA 1, time: " << mpCurrentKeyFrame->mTimeStamp << endl;
+                //         mpROSPublisher->SetMapInitInfo(mpAtlas->GetCurrentMap()->GetId(), 1, mpCurrentKeyFrame->mTimeStamp, mScale);
+                //     }
+                // }
+
+                // Initialize VP Iterative
+                if(!mpCurrentKeyFrame->GetMap()->GetIniertialBA1() && !mbInertial && mbIsUW)
+                {
+                    bool bOK = InitializeVPIterative(20, 0.01);
+                    bInitializing=false;
+                }
+
                 // Initialize VIP
                 if(!mpCurrentKeyFrame->GetMap()->isImuInitialized() && mbInertial && mbIsUW)
                 {
@@ -824,7 +851,7 @@ void LocalMapping::Run()
                     bool bOK = InitializeVIP(1e1, 1e3, true, 20, 0.01);
                     if (bOK)
                     {
-                        mTinit = mpCurrentKeyFrame->mTimeStamp;
+                        mTLastInit = mpCurrentKeyFrame->mTimeStamp;
                         mpROSPublisher->SetMapInitInfo(mpAtlas->GetCurrentMap()->GetId(), 1, mpCurrentKeyFrame->mTimeStamp, mScale);
                     }
                 }
@@ -842,34 +869,8 @@ void LocalMapping::Run()
 #endif
 
 
-                // VP-BA
-                if (!mbInertial && mbIsUW)
-                {
-                    if(mpCurrentKeyFrame->GetMap()->isDepthEnabledUW() && mpTracker->mState==Tracking::OK) // Enter here everytime local-mapping is called
-                    {
-                        if(!mpCurrentKeyFrame->GetMap()->GetIniertialBA1() && mpCurrentKeyFrame->mTimeStamp-mTinit > 5.f){
-                            bool bOK = InitializeUWBA(true, 30, 0.02);
-                            if (bOK)
-                            {
-                                mpCurrentKeyFrame->GetMap()->SetIniertialBA1();
-                                cout << "end VP-BA 2, time: " << mpCurrentKeyFrame->mTimeStamp << endl;
-                                mpROSPublisher->SetMapInitInfo(mpAtlas->GetCurrentMap()->GetId(), 2, mpCurrentKeyFrame->mTimeStamp, mScale);
-                            }
-                        }
-                        // else if(!mpCurrentKeyFrame->GetMap()->GetIniertialBA2()){
-                        //     bool bOK = InitializeUW2(true, 10, 0.05);
-                        //     if (bOK)
-                        //     {
-                        //         mpCurrentKeyFrame->GetMap()->SetIniertialBA2();
-                        //         cout << "end VP-BA 2, time: " << mpCurrentKeyFrame->mTimeStamp << endl;
-                        //     }
-                        // }
-                    }
-                }
 
-
-
-                // VIBA, scale refinement
+                // VI-BA, scale refinement
                 if ((mTinit<50.0f) && mbInertial && !mbIsUW)
                 {
                     if(mpCurrentKeyFrame->GetMap()->isImuInitialized() && mpTracker->mState==Tracking::OK) // Enter here everytime local-mapping is called
@@ -914,23 +915,40 @@ void LocalMapping::Run()
                     }
                 }
 
+                // // VP-BA
+                // if (!mbInertial && mbIsUW)
+                // {
+                //     if(mpCurrentKeyFrame->GetMap()->isDepthEnabledUW() && mpTracker->mState==Tracking::OK) // Enter here everytime local-mapping is called
+                //     {
+                //         if(!mpCurrentKeyFrame->GetMap()->GetIniertialBA1() && mpCurrentKeyFrame->mTimeStamp-mTLastInit > 10.f){
+                //             bool bOK = InitializeVPBA(true, 30, 0.02);
+                //             if (bOK)
+                //             {
+                //                 mpCurrentKeyFrame->GetMap()->SetIniertialBA1();
+                //                 cout << "end VP-BA 2, time: " << mpCurrentKeyFrame->mTimeStamp << endl;
+                //                 mpROSPublisher->SetMapInitInfo(mpAtlas->GetCurrentMap()->GetId(), 2, mpCurrentKeyFrame->mTimeStamp, mScale);
+                //             }
+                //         }
+                //     }
+                // }
+
                 // VIP-BA
                 if (mbInertial && mbIsUW)
                 {
                     if(mpCurrentKeyFrame->GetMap()->isImuInitialized() && mpTracker->mState==Tracking::OK)
                     {
-                        if(!mpCurrentKeyFrame->GetMap()->GetIniertialBA1() && mpCurrentKeyFrame->mTimeStamp-mTinit > 5.f){
+                        if(!mpCurrentKeyFrame->GetMap()->GetIniertialBA1() && mpCurrentKeyFrame->mTimeStamp-mTLastInit > 5.f){
                             bool bOK = InitializeVIP(1.f, 10.f, true, 20, 0.03);
                             // bool bOK = InitializeVIP(0.f, 0.f, true, 30, 0.01);
                             if (bOK)
                             {
-                                mTinit = mpCurrentKeyFrame->mTimeStamp;
+                                mTLastInit = mpCurrentKeyFrame->mTimeStamp;
                                 mpCurrentKeyFrame->GetMap()->SetIniertialBA1();
                                 cout << "end VIP-BA 1, time: " << mpCurrentKeyFrame->mTimeStamp << endl;
                                 mpROSPublisher->SetMapInitInfo(mpAtlas->GetCurrentMap()->GetId(), 2, mpCurrentKeyFrame->mTimeStamp, mScale);
                             }
                         }
-                        else if(!mpCurrentKeyFrame->GetMap()->GetIniertialBA2() && mpCurrentKeyFrame->mTimeStamp-mTinit > 5.f){
+                        else if(!mpCurrentKeyFrame->GetMap()->GetIniertialBA2() && mpCurrentKeyFrame->mTimeStamp-mTLastInit > 5.f){
                             bool bOK = InitializeVIP(0.f, 0.f, true, 20, 0.05);
                             if (bOK)
                             {

@@ -46,15 +46,14 @@ public:
     void SetROSPublisher(ROSPublisher* ROSPublisher);
 
     bool CalculateScaleUW(double &scale);
-    void InitializeUWIterative();  // Unused in favor of an optimization-based algorithm
-    bool InitializeUWBA(bool bFVPBA, int nMinKF = 15, double minDepthDistance = 0.0);
+    bool InitializeVPIterative(int nMinKF, double minDepthDistance);  
+    bool InitializeVPBA(bool bFVPBA, int nMinKF = 15, double minDepthDistance = 0.0);
     bool InitializeVIP(float priorG, float priorA, bool bFIBA, int nMinKF = 15, double minDepthDistance = 0.0);
 
 
     bool mbIsUW;
-    // bool first = true;
-    // bool VIPInit = false;
 
+    double mTLastInit;  // time of last initialization procedure
     int mScaleOKCount;  // counter for scale OK
 
     const int mScaleOKThreshold;    // count threshold before scale is considered initailized

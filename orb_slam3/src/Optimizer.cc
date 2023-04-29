@@ -592,7 +592,7 @@ int Optimizer::PoseOptimizationUW(Frame *pFrame, Frame *pFramePrev, bool isUW)
 
         // UW
         // Set Depth edge connected to pose
-        EdgeUWDepth3* eDepth = new EdgeUWDepth3;
+        EdgeUWDepthRelative* eDepth = new EdgeUWDepthRelative;
         eDepth->setVertex(0, VP1);
         eDepth->setVertex(1, VP2);
         // TODO: make this look cleaner
@@ -978,7 +978,7 @@ bool Optimizer::ScaleRotationOptimizationUW(Map *pMap, double &scale, Eigen::Mat
             continue;
         }
 
-        EdgeUWDepthGSUW3* eDepth = new EdgeUWDepthGSUW3;
+        EdgeUWDepthGSAbsolute* eDepth = new EdgeUWDepthGSAbsolute;
         eDepth->setVertex(0, dynamic_cast<g2o::OptimizableGraph::Vertex*>(VP1));
         eDepth->setVertex(1, dynamic_cast<g2o::OptimizableGraph::Vertex*>(VP2));
         // TODO: switch these up just because it's inverted compared to everywhere else
@@ -1128,7 +1128,7 @@ bool Optimizer::FullVPBA(Map* pMap, double &scale, Eigen::Matrix3d &Rwg, int nIt
             continue;
         }
 
-        EdgeUWDepthGSUW2* eDepth = new EdgeUWDepthGSUW2;
+        EdgeUWDepthGSAbsolute* eDepth = new EdgeUWDepthGSAbsolute;
         eDepth->setVertex(0, dynamic_cast<g2o::OptimizableGraph::Vertex*>(VP1));
         eDepth->setVertex(1, dynamic_cast<g2o::OptimizableGraph::Vertex*>(VP2));
         // TODO: switch these up just because it's inverted compared to everywhere else
@@ -1571,7 +1571,7 @@ void Optimizer::VIPOptimizationUW(Map *pMap, Eigen::Matrix3d &Rwg, double &scale
             // const VertexPose* VPose = static_cast<const VertexPose*>(VP2);
             // const VertexGDir* VRotation = static_cast<const VertexGDir*>(VGDir);
 
-            EdgeUWDepthGS4* eDepth = new EdgeUWDepthGS4;
+            EdgeUWDepthGSVIP* eDepth = new EdgeUWDepthGSVIP;
             eDepth->setVertex(0, dynamic_cast<g2o::OptimizableGraph::Vertex*>(VP1));
             eDepth->setVertex(1, dynamic_cast<g2o::OptimizableGraph::Vertex*>(VP2));
             eDepth->setVertex(2, dynamic_cast<g2o::OptimizableGraph::Vertex*>(VS));
@@ -1815,7 +1815,7 @@ void Optimizer::FullVIPBA(Map *pMap, int its, const bool bFixLocal, const long u
 
                 // UW
                 // Set Depth edge connected to pose
-                EdgeUWDepth2* eDepth = new EdgeUWDepth2;
+                EdgeUWDepthVIP* eDepth = new EdgeUWDepthVIP;
                 eDepth->setVertex(0, VP1);
                 eDepth->setVertex(1, VP2);
                 // TODO: make this look cleaner
@@ -3381,7 +3381,7 @@ void Optimizer::LocalBundleAdjustment(KeyFrame *pKF, bool* pbStopFlag, Map* pMap
 
             // UW
             // Set Depth edge connected to pose
-            EdgeUWDepth3* eDepth = new EdgeUWDepth3;
+            EdgeUWDepthRelative* eDepth = new EdgeUWDepthRelative;
             eDepth->setVertex(0, VP1);
             eDepth->setVertex(1, VP2);
             // TODO: make this look cleaner
@@ -4796,7 +4796,7 @@ void Optimizer::LocalInertialBA(KeyFrame *pKF, bool *pbStopFlag, Map *pMap, int&
             {
                 // UW
                 // Set Depth edge connected to pose
-                EdgeUWDepth2* eDepth = new EdgeUWDepth2;
+                EdgeUWDepthVIP* eDepth = new EdgeUWDepthVIP;
                 eDepth->setVertex(0, VP1);
                 eDepth->setVertex(1, VP2);
                 // TODO: make this look cleaner
@@ -6856,7 +6856,7 @@ int Optimizer::PoseInertialOptimizationLastKeyFrame(Frame *pFrame, bool bRecInit
     {
         // UW
         // Set Depth edge connected to pose
-        EdgeUWDepth2* eDepth = new EdgeUWDepth2;
+        EdgeUWDepthVIP* eDepth = new EdgeUWDepthVIP;
         eDepth->setVertex(0, VPk);
         eDepth->setVertex(1, VP);
         // TODO: make this look cleaner
@@ -7281,7 +7281,7 @@ int Optimizer::PoseInertialOptimizationLastFrame(Frame *pFrame, bool bRecInit, b
     {
         // UW
         // Set Depth edge connected to pose
-        EdgeUWDepth2* eDepth = new EdgeUWDepth2;
+        EdgeUWDepthVIP* eDepth = new EdgeUWDepthVIP;
         eDepth->setVertex(0, VPk);
         eDepth->setVertex(1, VP);
         // TODO: make this look cleaner
