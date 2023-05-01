@@ -1300,7 +1300,7 @@ bool Optimizer::FullVPBA(Map* pMap, double &scale, Eigen::Matrix3d &Rwg, int nIt
     }
 
     // Optimize!
-    optimizer.setVerbose(true);
+    optimizer.setVerbose(false);
     optimizer.initializeOptimization();
     optimizer.optimize(nIterations);
     Verbose::PrintMess("BA: End of the optimization", Verbose::VERBOSITY_NORMAL);
