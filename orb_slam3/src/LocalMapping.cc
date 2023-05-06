@@ -930,7 +930,7 @@ void LocalMapping::Run()
                     if(mpCurrentKeyFrame->GetMap()->isImuInitialized() && mpTracker->mState==Tracking::OK)
                     {
                         if(!mpCurrentKeyFrame->GetMap()->GetIniertialBA1() && mpCurrentKeyFrame->mTimeStamp-mTLastInit > 5.f){
-                            bool bOK = InitializeVIP(1.f, 10.f, false, 20, 0.03);
+                            bool bOK = InitializeVIP(1.f, 10.f, true, 20, 0.03);
                             // bool bOK = InitializeVIP(0.f, 0.f, true, 30, 0.01);
                             if (bOK)
                             {
