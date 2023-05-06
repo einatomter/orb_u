@@ -155,15 +155,16 @@ bool LocalMapping::InitializeVPIterative(int nMinKF, double minDepthDistance)
     double scale = 1.0;
     Eigen::Matrix3d rotation = Eigen::Matrix3d::Identity();
 
+    // {
+    //     // old initialization
+    //     optOK = CalculateScaleUW(scale);
+    //     optOK = Optimizer::ScaleRotationOptimizationUW(mpAtlas->GetCurrentMap(), scale, rotation, minDepthDistance, 0, false, true);
+    // }
+
     {
-        // old initialization
-        optOK = CalculateScaleUW(scale);
+        optOK = Optimizer::ScaleRotationOptimizationUW(mpAtlas->GetCurrentMap(), scale, rotation, minDepthDistance, 0, true, false);
         optOK = Optimizer::ScaleRotationOptimizationUW(mpAtlas->GetCurrentMap(), scale, rotation, minDepthDistance, 0, false, true);
     }
-
-    // {
-    //     optOK = Optimizer::ScaleRotationOptimizationUW(mpAtlas->GetCurrentMap(), scale, rotation, minDepthDistance, 0, false, false);
-    // }
 
     if(!optOK)
     {
@@ -251,6 +252,7 @@ bool LocalMapping::InitializeVPIterative(int nMinKF, double minDepthDistance)
     mpCurrentKeyFrame->GetMap()->IncreaseChangeIndex();
 
     cout << "UW init: Initialization done!" << endl;
+    mpROSPublisher->SetMapInitInfo(mpAtlas->GetCurrentMap()->GetId(), 1, mpCurrentKeyFrame->mTimeStamp, mScale);
     mpAtlas->GetCurrentMap()->SetIniertialBA1();
     mScaleOKCount = 0;
 
@@ -928,7 +930,7 @@ void LocalMapping::Run()
                     if(mpCurrentKeyFrame->GetMap()->isImuInitialized() && mpTracker->mState==Tracking::OK)
                     {
                         if(!mpCurrentKeyFrame->GetMap()->GetIniertialBA1() && mpCurrentKeyFrame->mTimeStamp-mTLastInit > 5.f){
-                            bool bOK = InitializeVIP(1.f, 10.f, true, 20, 0.03);
+                            bool bOK = InitializeVIP(1.f, 10.f, false, 20, 0.03);
                             // bool bOK = InitializeVIP(0.f, 0.f, true, 30, 0.01);
                             if (bOK)
                             {

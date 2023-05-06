@@ -259,7 +259,7 @@ protected:
     void CreateNewKeyFrame();
 
     // Perform preintegration from last frame
-    void PreintegrateIMU();
+    bool PreintegrateIMU();
 
     // Reset IMU biases and compute frame velocity
     void ResetFrameIMU();
