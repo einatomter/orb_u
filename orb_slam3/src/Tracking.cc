@@ -1967,14 +1967,14 @@ void Tracking::GrabImuData(const IMU::Point &imuMeasurement)
     mlQueueImuData.push_back(imuMeasurement);
 }
 
-void Tracking::PreintegrateIMU()
+bool Tracking::PreintegrateIMU()
 {
 
     if(!mCurrentFrame.mpPrevFrame)
     {
         Verbose::PrintMess("non prev frame ", Verbose::VERBOSITY_NORMAL);
         mCurrentFrame.setIntegrated();
-        return;
+        return false;
     }
 
     mvImuFromLastFrame.clear();
@@ -1983,7 +1983,7 @@ void Tracking::PreintegrateIMU()
     {
         Verbose::PrintMess("Not IMU data in mlQueueImuData!!", Verbose::VERBOSITY_NORMAL);
         mCurrentFrame.setIntegrated();
-        return;
+        return false;
     }
 
     while(true)
@@ -2022,8 +2022,8 @@ void Tracking::PreintegrateIMU()
 
     const int n = mvImuFromLastFrame.size()-1;
     if(n==0){
-        cout << "Empty IMU measurements vector!!!\n";
-        return;
+        cout << "Empty IMU measurements vector, check dataset if this message keeps showing up.\n";
+        return false;
     }
 
     IMU::Preintegrated* pImuPreintegratedFromLastFrame = new IMU::Preintegrated(mLastFrame.mImuBias,mCurrentFrame.mImuCalib);
@@ -2078,6 +2078,7 @@ void Tracking::PreintegrateIMU()
     mCurrentFrame.setIntegrated();
 
     //Verbose::PrintMess("Preintegration is finished!! ", Verbose::VERBOSITY_DEBUG);
+    return true;
 }
 
 
@@ -2217,7 +2218,11 @@ void Tracking::Track()
 #ifdef REGISTER_TIMES
         std::chrono::steady_clock::time_point time_StartPreIMU = std::chrono::steady_clock::now();
 #endif
-        PreintegrateIMU();
+        bool preintegrationSuccess = PreintegrateIMU();
+        if(!preintegrationSuccess)
+        {
+            return;
+        }
 #ifdef REGISTER_TIMES
         std::chrono::steady_clock::time_point time_EndPreIMU = std::chrono::steady_clock::now();
 
