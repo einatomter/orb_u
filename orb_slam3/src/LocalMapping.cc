@@ -215,6 +215,8 @@ bool LocalMapping::InitializeVPIterative(int nMinKF, double minDepthDistance)
         Sophus::SE3f Twg(rotation.cast<float>().transpose(), Eigen::Vector3f::Zero());
         mpAtlas->GetCurrentMap()->ApplyScaledRotation(Twg, scale, true);
 
+        mScale = scale;
+
         cout << "Map fixed scale: " << scale << "\n";
         cout << "rotation" << "\n";
         cout << rotation.transpose() << "\n" << endl;
@@ -319,10 +321,10 @@ bool LocalMapping::InitializeVPBA(bool bFVPBA, int nMinKF, double minDepthDistan
     // }
 
     {
-        if (!mpAtlas->GetCurrentMap()->isDepthEnabledUW())
-            Optimizer::ScaleRotationOptimizationUW(mpAtlas->GetCurrentMap(), mScale, mRwg, minDepthDistance, 0, false, false);
-        else if (!mpCurrentKeyFrame->GetMap()->GetIniertialBA1())
-            Optimizer::ScaleRotationOptimizationUW(mpAtlas->GetCurrentMap(), mScale, mRwg, minDepthDistance, 0, false, false);
+        // if (!mpAtlas->GetCurrentMap()->isDepthEnabledUW())
+            Optimizer::ScaleRotationOptimizationUW(mpAtlas->GetCurrentMap(), mScale, mRwg, minDepthDistance, 0, true, false);
+        // else if (!mpCurrentKeyFrame->GetMap()->GetIniertialBA1())
+            Optimizer::ScaleRotationOptimizationUW(mpAtlas->GetCurrentMap(), mScale, mRwg, minDepthDistance, 0, false, true);
 
         cout << "Map fixed scale: " << mScale << "\n";
         cout << "rotation" << "\n";
