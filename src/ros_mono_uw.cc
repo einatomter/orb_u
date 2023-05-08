@@ -23,7 +23,8 @@ public:
 class ImageGrabber
 {
 public:
-    ImageGrabber(PressureGrabber *pPGb): mpPGb(pPGb){}
+    ImageGrabber(PressureGrabber *pPGb, double timeshift_cam_imu): 
+        mpPGb(pPGb), mTimeshift_cam_imu(timeshift_cam_imu){}
 
     void GrabImage(const sensor_msgs::ImageConstPtr& msg);
     cv::Mat GetImage(const sensor_msgs::ImageConstPtr &img_msg);
@@ -32,6 +33,7 @@ public:
     queue<sensor_msgs::ImageConstPtr> img0Buf;
     std::mutex mBufMutex;
     PressureGrabber *mpPGb;
+    double mTimeshift_cam_imu;
 };
 
 //////////////////////////////////////////////////
@@ -70,6 +72,8 @@ int main(int argc, char **argv)
     node_handler.param<std::string>(node_name + "/cam_frame_id", cam_frame_id, "camera");
     // TODO: check for pressure frame id
     // node_handler.param<std::string>(node_name + "/imu_frame_id", imu_frame_id, "imu");
+    double timeshift_cam_imu;
+    node_handler.param<double>(node_name + "/timeshift_cam_imu", timeshift_cam_imu, 0.0);
 
     // Create SLAM system. It initializes all system threads and gets ready to process frames.
     // sensor_type = ORB_SLAM3::System::IMU_MONOCULAR;
@@ -78,7 +82,7 @@ int main(int argc, char **argv)
 
     // ImuGrabber imugb;
     PressureGrabber pgb;
-    ImageGrabber igb(&pgb);
+    ImageGrabber igb(&pgb, timeshift_cam_imu);
 
     ros::Subscriber sub_pres = node_handler.subscribe("/pressure", 100, &PressureGrabber::GrabPressure, &pgb); 
     // ros::Subscriber sub_imu = node_handler.subscribe("/imu", 1000, &ImuGrabber::GrabImu, &imugb); 
@@ -111,11 +115,11 @@ void ImageGrabber::SyncWithPressure()
             cv::Mat im;
             double tIm = 0;
             
-            tIm = img0Buf.front()->header.stamp.toSec();
+            tIm = img0Buf.front()->header.stamp.toSec() + mTimeshift_cam_imu;
 
             this->mBufMutex.lock();
             im = GetImage(img0Buf.front());
-            ros::Time msg_time = img0Buf.front()->header.stamp;
+            ros::Time msg_time = img0Buf.front()->header.stamp + ros::Duration(mTimeshift_cam_imu);
             img0Buf.pop();
             this->mBufMutex.unlock();
 
