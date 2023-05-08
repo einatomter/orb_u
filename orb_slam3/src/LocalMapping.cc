@@ -155,16 +155,16 @@ bool LocalMapping::InitializeVPIterative(int nMinKF, double minDepthDistance)
     double scale = 1.0;
     Eigen::Matrix3d rotation = Eigen::Matrix3d::Identity();
 
-    // {
-    //     // old initialization
-    //     optOK = CalculateScaleUW(scale);
-    //     optOK = Optimizer::ScaleRotationOptimizationUW(mpAtlas->GetCurrentMap(), scale, rotation, minDepthDistance, 0, false, true);
-    // }
-
     {
-        optOK = Optimizer::ScaleRotationOptimizationUW(mpAtlas->GetCurrentMap(), scale, rotation, minDepthDistance, 0, true, false);
+        // old initialization
+        optOK = CalculateScaleUW(scale);
         optOK = Optimizer::ScaleRotationOptimizationUW(mpAtlas->GetCurrentMap(), scale, rotation, minDepthDistance, 0, false, true);
     }
+
+    // {
+    //     optOK = Optimizer::ScaleRotationOptimizationUW(mpAtlas->GetCurrentMap(), scale, rotation, minDepthDistance, 0, true, false);
+    //     optOK = Optimizer::ScaleRotationOptimizationUW(mpAtlas->GetCurrentMap(), scale, rotation, minDepthDistance, 0, false, true);
+    // }
 
     if(!optOK)
     {

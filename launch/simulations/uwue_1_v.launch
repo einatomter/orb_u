@@ -2,7 +2,7 @@
     <param name="use_sim_time" value="false" />
 
     <!-- Main node -->
-    <node name="orb_slam3" pkg="orb_slam3_ros" type="ros_mono_inertial_uw" output="screen">
+    <node name="orb_slam3" pkg="orb_slam3_ros" type="ros_mono" output="screen">
         <!-- change the topics according to the dataset -->
         <remap from="/camera/image_raw"     to="/unreal_ros/image_color"/>
         <remap from="/imu"                  to="/x3/imu"/>
@@ -20,7 +20,7 @@
     </node>
     
     <!-- Visualization -->
-    <node name="rviz" pkg="rviz" type="rviz" args="-d $(find orb_slam3_ros)/config/orb_slam3_with_imu.rviz" output="screen" />
+    <!-- <node name="rviz" pkg="rviz" type="rviz" args="-d $(find orb_slam3_ros)/config/orb_slam3_with_imu.rviz" output="screen" /> -->
     <!-- <node name="rviz" pkg="rviz" type="rviz" args="-d $(find orb_slam3_ros)/config/orb_slam3_no_imu_ue.rviz" output="screen" /> -->
     
     <!-- Trajectory path -->
