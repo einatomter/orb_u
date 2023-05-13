@@ -9,7 +9,7 @@
         <remap from="/pressure"             to="/barometer_node/depth"/>
 
         <!-- Parameters for original ORB-SLAM3 -->
-        <param name="voc_file"      type="string" value="$(find orb_slam3_ros)/orb_slam3/Vocabulary/ORBvoc.txt.bin"/>
+        <param name="voc_file"      type="string" value="$(find orb_slam3_ros)/orb_slam3/Vocabulary/slam_uw.txt.bin"/>
         <param name="settings_file" type="string" value="$(find orb_slam3_ros)/config/Custom/aqualoc_harbor.yaml"/>
 
         <!-- Parameters for ROS -->
@@ -17,7 +17,7 @@
         <param name="cam_frame_id"      type="string"   value="camera" />
         <param name="imu_frame_id"      type="string"   value="imu" />
         <param name="enable_pangolin"   type="bool"     value="false" />
-        <param name="timeshift_cam_imu" type="double"   value="-0.0403806549886" />
+        <param name="timeshift_cam_imu" type="double"   value="0.0" />
     </node>
     
     <!-- Visualization -->
