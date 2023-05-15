@@ -17,11 +17,11 @@
         <param name="cam_frame_id"      type="string"   value="camera" />
         <param name="imu_frame_id"      type="string"   value="imu" />
         <param name="enable_pangolin"   type="bool"     value="false" />
-        <param name="timeshift_cam_imu" type="double"   value="-0.0403806549886" />
+        <param name="timeshift_cam_imu" type="double"   value="0.0" />
     </node>
     
     <!-- Visualization -->
-    <!-- <node name="rviz" pkg="rviz" type="rviz" args="-d $(find orb_slam3_ros)/config/orb_slam3_no_imu.rviz" output="screen" /> -->
+    <node name="rviz" pkg="rviz" type="rviz" args="-d $(find orb_slam3_ros)/config/orb_slam3_no_imu.rviz" output="screen" />
     <!-- <node name="rviz" pkg="rviz" type="rviz" args="-d $(find orb_slam3_ros)/config/orb_slam3_with_imu.rviz" output="screen" /> -->
     
     <!-- Trajectory path -->

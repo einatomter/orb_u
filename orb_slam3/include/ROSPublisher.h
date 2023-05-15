@@ -42,6 +42,8 @@ public:
     ROSPublisher();
     ~ROSPublisher();
 
+    void PublishTimeMS(double time_ms);
+
     // Tracking
     void SetTrackingInfo(int trackedPoints, int inliers);
 
@@ -67,6 +69,7 @@ private:
     ros::Publisher mRosPTrackingInfo;
     ros::Publisher mRosPMapInitInfo;
     ros::Publisher mRosPLoopClosingInfo;
+    ros::Publisher mRosPTimeMS;
 
     // Tracking
     std::mutex mMutexInliers;

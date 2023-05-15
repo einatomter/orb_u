@@ -17,7 +17,7 @@
 #--------------------------------------------------------------------------------------------
 
 # CLAHE Parameters.
-CLAHE.Enable: 1         # CLAHE parameters will be ignored if this is disabled
+CLAHE.Enable: 0         # CLAHE parameters will be ignored if this is disabled
 CLAHE.ClipLimit:  3.0   # kinda reliant on dataset
 CLAHE.GridWidth:  4     # 4 - 20, heavy diminishing returns after 10 ish
 CLAHE.GridHeight: 4     # 4 - 20, heavy diminishing returns after 10 ish
@@ -57,7 +57,7 @@ Camera.newWidth: 600
 Camera.newHeight: 350
 
 # Camera frames per second 
-Camera.fps: 30
+Camera.fps: 20
 
 # Color order of the images (0: BGR, 1: RGB. It is ignored if images are grayscale)
 Camera.RGB: 1
@@ -87,7 +87,7 @@ IMU.Frequency: 100.0
 #--------------------------------------------------------------------------------------------
 
 # ORB Extractor: Number of features per image
-ORBextractor.nFeatures: 1000
+ORBextractor.nFeatures: 3000
 
 # ORB Extractor: Scale factor between levels in the scale pyramid 	
 ORBextractor.scaleFactor: 1.2

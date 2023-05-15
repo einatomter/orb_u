@@ -1905,6 +1905,8 @@ Sophus::SE3f Tracking::GrabImageRGBD(const cv::Mat &imRGB,const cv::Mat &imD, co
 
 Sophus::SE3f Tracking::GrabImageMonocular(const cv::Mat &im, const double &timestamp, string filename)
 {
+
+
     mImGray = im;
     if(mImGray.channels()==3)
     {
@@ -1924,7 +1926,10 @@ Sophus::SE3f Tracking::GrabImageMonocular(const cv::Mat &im, const double &times
     // UW
     // Assumed remaining channel is grayscale
     if (mbUseClahe)
+    {
         ApplyClahe(mImGray, mImGray);
+
+    }
 
 
     if (mSensor == System::MONOCULAR)
@@ -1957,7 +1962,9 @@ Sophus::SE3f Tracking::GrabImageMonocular(const cv::Mat &im, const double &times
     lastID = mCurrentFrame.mnId;
     Track();
 
+
     return mCurrentFrame.GetPose();
+
 }
 
 

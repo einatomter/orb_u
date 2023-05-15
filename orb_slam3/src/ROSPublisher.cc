@@ -7,6 +7,8 @@ ROSPublisher::ROSPublisher():
     mRosPTrackingInfo = nh.advertise<orb_slam3_ros::TrackingInfo>(mRosNodeName + "/tracking_info", 10);
     mRosPMapInitInfo = nh.advertise<orb_slam3_ros::MapInfo>(mRosNodeName + "/map_init_info", 2);
     mRosPLoopClosingInfo = nh.advertise<orb_slam3_ros::LoopClosingInfo>(mRosNodeName + "/loop_closing_info", 10);
+    mRosPTimeMS = nh.advertise<std_msgs::Float64>(mRosNodeName + "/time_ms", 10);
+
     bIsRunning = true;
     mtPublisherThread = std::thread(&ROSPublisher::Run, this);
 }
@@ -18,6 +20,15 @@ ROSPublisher::~ROSPublisher()
         mtPublisherThread.join();
     }
 }
+
+void ROSPublisher::PublishTimeMS(double time_ms) 
+{
+    // std::cout << "PublishTimeMS: " << time_ms << std::endl;
+    std_msgs::Float64 msg;
+    msg.data = time_ms;
+    mRosPTimeMS.publish(msg);
+}
+
 
 
 // Tracking
